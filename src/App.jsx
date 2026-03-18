@@ -385,7 +385,7 @@ function hydrateLoadedGame(savedGame) {
     return null;
   }
 
-  const bestOf = Number(savedGame.bestOf ?? 1);
+  const bestOf = Number(savedGame.bestOf ?? 3);
   const bestOfValidation = validateBestOf(bestOf);
   if (!bestOfValidation.valid) {
     return null;
@@ -861,10 +861,6 @@ export default function App() {
             <h1 className="text-4xl font-bold tracking-tight">
               Darts Tic-Tac-Toe
             </h1>
-            <p className="mt-2 text-slate-300">
-              Click a number after it was checked in real life and assign it to
-              the right player.
-            </p>
           </div>
 
           {game && (
