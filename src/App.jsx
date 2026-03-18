@@ -167,7 +167,7 @@ function getWinsNeeded(bestOf) {
 function buildStoredSetup(setup) {
   return {
     separateBoards: !!setup.separateBoards,
-    bestOf: String(setup.bestOf ?? "1"),
+    bestOf: String(setup.bestOf ?? "3"),
     min: setup.min ?? "",
     max: setup.max ?? "",
     player1Min: setup.player1Min ?? "",
@@ -537,7 +537,7 @@ function isMatchOngoing(game) {
 export default function App() {
   const [setup, setSetup] = useState({
     separateBoards: false,
-    bestOf: "1",
+    bestOf: "3",
     min: "",
     max: "",
     player1Min: "",
