@@ -1,0 +1,80 @@
+{
+    "app": {
+        "title": "Darts Tic-Tac-Toe"
+    },
+    "language": {
+        "label": "Language",
+        "english": "English",
+        "german": "German"
+    },
+    "common": {
+        "minLowercase": "min"
+    },
+    "validation": {
+        "minRange": "Min must be >= 2 and <= 167",
+        "maxRange": "Max must be > {min} and <= 170",
+        "bestOf": "Best of must be 0 or an odd number >= 1",
+        "players": "Both names are required and must be different"
+    },
+    "match": {
+        "infiniteMatch": "Infinite Match",
+        "bestOf": "Best of {count}",
+        "infiniteDescription": "Play continues until the match is reset manually",
+        "firstToWins": "First to {count} round{suffix} wins the match",
+        "roundsSuffix": "s",
+        "playerWinsMatch": "{name} wins the match!"
+    },
+    "round": {
+        "draw": "Round draw",
+        "playerWonRound": "{name} won round {round}"
+    },
+    "board": {
+        "sharedHint": "Tap any square to claim, change, or unclaim it",
+        "separateHint": "Tap a square to toggle it on or off for the selected player",
+        "sharedRangeInfo": "Range: {min} - {max} · X = {playerX} · O = {playerO}",
+        "separateRangeInfo": "{playerX}: {minX} - {maxX} · {playerO}: {minO} - {maxO}"
+    },
+    "setup": {
+        "startNewGame": "Start new game",
+        "subtitle": "Enter the checkout range and both player names.",
+        "player1": "Player 1 (X)",
+        "player2": "Player 2 (O)",
+        "player1Placeholder": "Player 1",
+        "player2Placeholder": "Player 2",
+        "separateBoards": "Separate Boards",
+        "bestOf": "Best of",
+        "bestOfPlaceholder": "e.g. 5 or 0 for infinite",
+        "bestOfHint": "Use 0 for an infinite match until reset manually.",
+        "minValue": "Min value",
+        "maxValue": "Max value",
+        "minPlaceholder": "e.g. 40",
+        "maxPlaceholder": "e.g. 100",
+        "playerBoardNamed": "{name}'s Board",
+        "playerBoardFallback": "Player Board"
+    },
+    "changeSetup": {
+        "title": "Change players / range?",
+        "description": "This match is still in progress. You can go to the setup screen to change players or ranges, or cancel and continue the current match."
+    },
+    "claim": {
+        "numberTitle": "Number {number}",
+        "selectWhoCheckedOut": "Select who checked this out.",
+        "currentlyClaimedBy": "Currently claimed by {name}. You can change or remove it."
+    },
+    "reset": {
+        "title": "Reset match?",
+        "description": "This will clear the current round, reset the match score to 0 - 0, and remove the current progress."
+    },
+    "actions": {
+        "continueToSetup": "Continue to setup",
+        "startGame": "Start game",
+        "nextRound": "Next Round",
+        "finishGame": "Finish Game",
+        "undoLastAction": "Undo Last Action",
+        "resetMatch": "Reset Match",
+        "changePlayersRange": "Change Players / Range",
+        "unclaimNumber": "Unclaim number",
+        "cancel": "Cancel",
+        "confirmResetMatch": "Yes, reset match"
+    }
+}

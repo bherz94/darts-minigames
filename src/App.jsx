@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import en from "./locales/en.json";
+import de from "./locales/de.json";
 
 const STORAGE_KEY = "darts-tictactoe-gamestate";
+const LANGUAGE_STORAGE_KEY = "darts-tictactoe-language";
+
+const translations = {
+  en,
+  de,
+};
 
 const WIN_LINES = [
   [0, 1, 2],
@@ -74,7 +82,7 @@ function getWinner(claims) {
   return null;
 }
 
-function validateRange(min, max) {
+function validateRange(min, max, t) {
   const minNum = Number(min);
   const maxNum = Number(max);
 
@@ -84,33 +92,35 @@ function validateRange(min, max) {
   return {
     valid: validMin && validMax,
     errors: {
-      min: validMin ? "" : "Min must be >= 2 and <= 167",
-      max: validMax ? "" : `Max must be > ${min || "min"} and <= 170`,
+      min: validMin ? "" : t("validation.minRange"),
+      max: validMax
+        ? ""
+        : t("validation.maxRange", { min: min || t("common.minLowercase") }),
     },
   };
 }
 
-function validateBestOf(bestOf) {
+function validateBestOf(bestOf, t) {
   const value = Number(bestOf);
   const valid =
     Number.isInteger(value) && value >= 0 && (value === 0 || value % 2 === 1);
 
   return {
     valid,
-    error: valid ? "" : "Best of must be 0 or an odd number >= 1",
+    error: valid ? "" : t("validation.bestOf"),
   };
 }
 
-function validateSetup(setup) {
+function validateSetup(setup, t) {
   const validPlayers =
     setup.player1.trim().length > 0 &&
     setup.player2.trim().length > 0 &&
     setup.player1.trim() !== setup.player2.trim();
 
-  const bestOfValidation = validateBestOf(setup.bestOf);
+  const bestOfValidation = validateBestOf(setup.bestOf, t);
 
   if (!setup.separateBoards) {
-    const rangeValidation = validateRange(setup.min, setup.max);
+    const rangeValidation = validateRange(setup.min, setup.max, t);
 
     return {
       valid: rangeValidation.valid && validPlayers && bestOfValidation.valid,
@@ -122,9 +132,7 @@ function validateSetup(setup) {
         player2Min: "",
         player2Max: "",
         bestOf: bestOfValidation.error,
-        players: validPlayers
-          ? ""
-          : "Both names are required and must be different",
+        players: validPlayers ? "" : t("validation.players"),
       },
     };
   }
@@ -132,10 +140,12 @@ function validateSetup(setup) {
   const player1RangeValidation = validateRange(
     setup.player1Min,
     setup.player1Max,
+    t,
   );
   const player2RangeValidation = validateRange(
     setup.player2Min,
     setup.player2Max,
+    t,
   );
 
   return {
@@ -152,9 +162,7 @@ function validateSetup(setup) {
       player2Min: player2RangeValidation.errors.min,
       player2Max: player2RangeValidation.errors.max,
       bestOf: bestOfValidation.error,
-      players: validPlayers
-        ? ""
-        : "Both names are required and must be different",
+      players: validPlayers ? "" : t("validation.players"),
     },
   };
 }
@@ -342,8 +350,9 @@ function sanitizeBoard(rawBoard, fallbackOwner) {
   const min = Number(rawBoard.min);
   const max = Number(rawBoard.max);
 
-  const rangeValidation = validateRange(min, max);
-  if (!rangeValidation.valid) return null;
+  const validMin = Number.isInteger(min) && min >= 2 && min <= 167;
+  const validMax = Number.isInteger(max) && max > min && max <= 170;
+  if (!validMin || !validMax) return null;
 
   const claims = normalizeClaims(rawBoard.claims);
   if (!claims) return null;
@@ -390,8 +399,12 @@ function hydrateLoadedGame(savedGame) {
   }
 
   const bestOf = Number(savedGame.bestOf ?? 3);
-  const bestOfValidation = validateBestOf(bestOf);
-  if (!bestOfValidation.valid) {
+  const validBestOf =
+    Number.isInteger(bestOf) &&
+    bestOf >= 0 &&
+    (bestOf === 0 || bestOf % 2 === 1);
+
+  if (!validBestOf) {
     return null;
   }
 
@@ -453,8 +466,9 @@ function hydrateLoadedGame(savedGame) {
     const min = Number(savedGame.min);
     const max = Number(savedGame.max);
 
-    const rangeValidation = validateRange(min, max);
-    if (!rangeValidation.valid) {
+    const validMin = Number.isInteger(min) && min >= 2 && min <= 167;
+    const validMax = Number.isInteger(max) && max > min && max <= 170;
+    if (!validMin || !validMax) {
       return null;
     }
 
@@ -510,11 +524,6 @@ function hydrateLoadedGame(savedGame) {
       },
     },
   };
-}
-
-function getBoardHeading(fallbackLabel, playerName) {
-  const name = playerName.trim();
-  return name ? `${name}'s Board` : fallbackLabel;
 }
 
 function boardHasProgress(board) {
@@ -576,7 +585,47 @@ function getSeparateRoundState(game) {
   };
 }
 
+function getValueByPath(obj, path) {
+  return path.split(".").reduce((acc, part) => acc?.[part], obj);
+}
+
+function interpolate(template, vars = {}) {
+  return String(template).replace(/\{(\w+)\}/g, (_, key) =>
+    vars[key] !== undefined ? String(vars[key]) : `{${key}}`,
+  );
+}
+
+function getPlayerBoardHeading(playerName, t) {
+  const name = playerName.trim();
+  return name
+    ? t("setup.playerBoardNamed", { name })
+    : t("setup.playerBoardFallback");
+}
+
 export default function App() {
+  const [language, setLanguage] = useState(() => {
+    try {
+      const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      return savedLanguage === "de" || savedLanguage === "en"
+        ? savedLanguage
+        : "en";
+    } catch {
+      return "en";
+    }
+  });
+
+  const t = useCallback(
+    (key, vars = {}) => {
+      const dictionary = translations[language] ?? translations.en;
+      const fallback = translations.en;
+      const value =
+        getValueByPath(dictionary, key) ?? getValueByPath(fallback, key) ?? key;
+
+      return interpolate(value, vars);
+    },
+    [language],
+  );
+
   const [setup, setSetup] = useState({
     separateBoards: false,
     bestOf: "3",
@@ -618,6 +667,15 @@ export default function App() {
   const [activeBoard, setActiveBoard] = useState("X");
   const [history, setHistory] = useState([]);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [changeSetupConfirmOpen, setChangeSetupConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    } catch {
+      // ignore storage write failures
+    }
+  }, [language]);
 
   useEffect(() => {
     try {
@@ -631,7 +689,7 @@ export default function App() {
     }
   }, [game]);
 
-  const validation = useMemo(() => validateSetup(setup), [setup]);
+  const validation = useMemo(() => validateSetup(setup, t), [setup, t]);
 
   const setupModalOpen = !game;
   const isSeparateMode = game?.mode === "separate";
@@ -663,7 +721,11 @@ export default function App() {
       ? game.isDraw && !game.winner
       : separateRoundState?.type === "draw");
 
-  const anyOverlayOpen = setupModalOpen || claimModalOpen || resetConfirmOpen;
+  const anyOverlayOpen =
+    setupModalOpen ||
+    claimModalOpen ||
+    resetConfirmOpen ||
+    changeSetupConfirmOpen;
 
   const selectedNumber =
     game && selectedTileIndex !== null
@@ -718,6 +780,7 @@ export default function App() {
     setActiveBoard("X");
     setHistory([]);
     setResetConfirmOpen(false);
+    setChangeSetupConfirmOpen(false);
   }
 
   function handleTileClick(index) {
@@ -873,6 +936,7 @@ export default function App() {
 
     setSelectedTileIndex(null);
     setResetConfirmOpen(false);
+    setChangeSetupConfirmOpen(false);
 
     setHistory((prev) => {
       const nextHistory = [...prev];
@@ -884,7 +948,7 @@ export default function App() {
     });
   }
 
-  function handleNewSetup() {
+  function performOpenNewSetup() {
     if (game?.setupValues) {
       setSetup(game.setupValues);
     }
@@ -892,8 +956,23 @@ export default function App() {
     setSelectedTileIndex(null);
     setActiveBoard("X");
     setResetConfirmOpen(false);
+    setChangeSetupConfirmOpen(false);
     setGame(null);
     setHistory([]);
+  }
+
+  function handleNewSetup() {
+    if (!game) {
+      performOpenNewSetup();
+      return;
+    }
+
+    if (isMatchOngoing(game) && !game.matchFinished) {
+      setChangeSetupConfirmOpen(true);
+      return;
+    }
+
+    performOpenNewSetup();
   }
 
   const boardNumbers = isSeparateMode
@@ -916,10 +995,26 @@ export default function App() {
         }
       >
         <main className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-4 py-4 md:py-5">
-          <div className="mb-5 text-center">
-            <h1 className="text-4xl font-bold tracking-tight">
-              Darts Tic-Tac-Toe
-            </h1>
+          <div className="mb-5 w-full">
+            <div className="mb-4 flex items-start justify-end">
+              <label className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200">
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="bg-transparent outline-none"
+                  aria-label={t("language.label")}
+                >
+                  <option value="en">🇬🇧 {t("language.english")}</option>
+                  <option value="de">🇩🇪 {t("language.german")}</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="text-center">
+              <h1 className="text-4xl font-bold tracking-tight">
+                {t("app.title")}
+              </h1>
+            </div>
           </div>
 
           {game && (
@@ -927,8 +1022,8 @@ export default function App() {
               <div className="mb-4 rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 text-center">
                 <div className="text-sm uppercase tracking-wide text-slate-400">
                   {game.bestOf === 0
-                    ? "Infinite Match"
-                    : `Best of ${game.bestOf}`}
+                    ? t("match.infiniteMatch")
+                    : t("match.bestOf", { count: game.bestOf })}
                 </div>
                 <div className="mt-2 text-lg font-semibold text-white">
                   {game.players.X} {game.matchWins.X} - {game.matchWins.O}{" "}
@@ -936,29 +1031,21 @@ export default function App() {
                 </div>
                 <div className="mt-1 text-sm text-slate-400">
                   {game.winsNeeded === null
-                    ? "Play continues until the match is reset manually"
-                    : `First to ${game.winsNeeded} round${
-                        game.winsNeeded === 1 ? "" : "s"
-                      } wins the match`}
+                    ? t("match.infiniteDescription")
+                    : t("match.firstToWins", {
+                        count: game.winsNeeded,
+                        suffix:
+                          game.winsNeeded === 1 ? "" : t("match.roundsSuffix"),
+                      })}
                 </div>
               </div>
 
               <div className="mb-5 flex flex-col items-center gap-3 text-center">
-                {game.mode === "shared" &&
-                  game.matchWinner &&
-                  game.matchFinished && (
-                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xl font-semibold text-emerald-300">
-                      {matchWinnerName} wins the match!
-                    </div>
-                  )}
-
-                {game.mode === "separate" &&
-                  game.matchWinner &&
-                  game.matchFinished && (
-                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xl font-semibold text-emerald-300">
-                      {matchWinnerName} wins the match!
-                    </div>
-                  )}
+                {game.matchWinner && game.matchFinished && (
+                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xl font-semibold text-emerald-300">
+                    {t("match.playerWinsMatch", { name: matchWinnerName })}
+                  </div>
+                )}
 
                 {!showRoundOutcomePanel &&
                   game.mode === "shared" &&
@@ -966,7 +1053,7 @@ export default function App() {
                   !game.winner &&
                   !game.isDraw && (
                     <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
-                      Tap any square to claim, change, or unclaim it
+                      {t("board.sharedHint")}
                     </div>
                   )}
 
@@ -977,8 +1064,7 @@ export default function App() {
                   !game.boards.O.winner &&
                   !(game.boards.X.isDraw && game.boards.O.isDraw) && (
                     <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
-                      Tap a square to toggle it on or off for the selected
-                      player
+                      {t("board.separateHint")}
                     </div>
                   )}
 
@@ -986,11 +1072,14 @@ export default function App() {
                   <>
                     {roundIsDraw ? (
                       <div className="text-2xl font-bold text-amber-300">
-                        Round draw
+                        {t("round.draw")}
                       </div>
                     ) : (
                       <div className="text-2xl font-bold text-emerald-300">
-                        {roundWinnerName} won round {roundNumber}
+                        {t("round.playerWonRound", {
+                          name: roundWinnerName,
+                          round: roundNumber,
+                        })}
                       </div>
                     )}
 
@@ -1000,21 +1089,21 @@ export default function App() {
                           onClick={handleNextRound}
                           className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
                         >
-                          Next Round
+                          {t("actions.nextRound")}
                         </button>
                       ) : isFinalRoundWin ? (
                         <button
                           onClick={handleFinishGame}
                           className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
                         >
-                          Finish Game
+                          {t("actions.finishGame")}
                         </button>
                       ) : (
                         <button
                           onClick={handleNextRound}
                           className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
                         >
-                          Next Round
+                          {t("actions.nextRound")}
                         </button>
                       )}
 
@@ -1028,7 +1117,7 @@ export default function App() {
                             : "cursor-not-allowed bg-slate-700 text-slate-400",
                         ].join(" ")}
                       >
-                        Undo Last Action
+                        {t("actions.undoLastAction")}
                       </button>
                     </div>
                   </>
@@ -1036,16 +1125,25 @@ export default function App() {
 
                 {game.mode === "shared" && (
                   <div className="text-sm text-slate-400">
-                    Range: {game.min} - {game.max} · X = {game.players.X} · O ={" "}
-                    {game.players.O}
+                    {t("board.sharedRangeInfo", {
+                      min: game.min,
+                      max: game.max,
+                      playerX: game.players.X,
+                      playerO: game.players.O,
+                    })}
                   </div>
                 )}
 
                 {game.mode === "separate" && (
                   <div className="text-sm text-slate-400">
-                    {game.players.X}: {game.boards.X.min} - {game.boards.X.max}{" "}
-                    · {game.players.O}: {game.boards.O.min} -{" "}
-                    {game.boards.O.max}
+                    {t("board.separateRangeInfo", {
+                      playerX: game.players.X,
+                      minX: game.boards.X.min,
+                      maxX: game.boards.X.max,
+                      playerO: game.players.O,
+                      minO: game.boards.O.min,
+                      maxO: game.boards.O.max,
+                    })}
                   </div>
                 )}
               </div>
@@ -1153,14 +1251,14 @@ export default function App() {
                   onClick={handleResetMatch}
                   className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 font-medium text-amber-200 transition hover:bg-amber-500/20"
                 >
-                  Reset Match
+                  {t("actions.resetMatch")}
                 </button>
 
                 <button
                   onClick={handleNewSetup}
                   className="rounded-xl border border-slate-600 px-4 py-2 font-medium text-white transition hover:bg-slate-800"
                 >
-                  Change Players / Range
+                  {t("actions.changePlayersRange")}
                 </button>
               </div>
             </>
@@ -1172,18 +1270,18 @@ export default function App() {
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 px-4 py-4 sm:flex sm:items-center sm:justify-center sm:py-6">
           <form
             onSubmit={handleSubmitSetup}
-            className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-h-[calc(100dvh-3rem)]"
+            className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]"
           >
-            <div className="overflow-y-auto p-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
-              <h2 className="text-2xl font-bold">Start new game</h2>
+            <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:max-h-[calc(100dvh-3rem)]">
+              <h2 className="text-2xl font-bold">{t("setup.startNewGame")}</h2>
               <p className="mt-2 text-sm text-slate-400">
-                Enter the checkout range and both player names.
+                {t("setup.subtitle")}
               </p>
 
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-sm text-slate-300">
-                    Player 1 (X)
+                    {t("setup.player1")}
                   </label>
                   <input
                     type="text"
@@ -1193,13 +1291,13 @@ export default function App() {
                     }
                     enterKeyHint="next"
                     className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                    placeholder="Player 1"
+                    placeholder={t("setup.player1Placeholder")}
                   />
                 </div>
 
                 <div>
                   <label className="mb-1 block text-sm text-slate-300">
-                    Player 2 (O)
+                    {t("setup.player2")}
                   </label>
                   <input
                     type="text"
@@ -1209,7 +1307,7 @@ export default function App() {
                     }
                     enterKeyHint="next"
                     className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                    placeholder="Player 2"
+                    placeholder={t("setup.player2Placeholder")}
                   />
                 </div>
               </div>
@@ -1227,13 +1325,13 @@ export default function App() {
                     }
                     className="h-4 w-4 rounded border-slate-600 bg-slate-950"
                   />
-                  Separate Boards
+                  {t("setup.separateBoards")}
                 </label>
               </div>
 
               <div className="mt-6">
                 <label className="mb-1 block text-sm text-slate-300">
-                  Best of
+                  {t("setup.bestOf")}
                 </label>
                 <input
                   type="number"
@@ -1244,7 +1342,7 @@ export default function App() {
                   }
                   enterKeyHint="next"
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                  placeholder="e.g. 5 or 0 for infinite"
+                  placeholder={t("setup.bestOfPlaceholder")}
                 />
                 {validation.errors.bestOf && (
                   <p className="mt-1 text-xs text-rose-400">
@@ -1253,7 +1351,7 @@ export default function App() {
                 )}
                 {!validation.errors.bestOf && (
                   <p className="mt-1 text-xs text-slate-400">
-                    Use 0 for an infinite match until reset manually.
+                    {t("setup.bestOfHint")}
                   </p>
                 )}
               </div>
@@ -1262,7 +1360,7 @@ export default function App() {
                 <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm text-slate-300">
-                      Min value
+                      {t("setup.minValue")}
                     </label>
                     <input
                       type="number"
@@ -1272,7 +1370,7 @@ export default function App() {
                       }
                       enterKeyHint="next"
                       className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                      placeholder="e.g. 40"
+                      placeholder={t("setup.minPlaceholder")}
                     />
                     {validation.errors.min && (
                       <p className="mt-1 text-xs text-rose-400">
@@ -1283,7 +1381,7 @@ export default function App() {
 
                   <div>
                     <label className="mb-1 block text-sm text-slate-300">
-                      Max value
+                      {t("setup.maxValue")}
                     </label>
                     <input
                       type="number"
@@ -1293,7 +1391,7 @@ export default function App() {
                       }
                       enterKeyHint="done"
                       className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                      placeholder="e.g. 100"
+                      placeholder={t("setup.maxPlaceholder")}
                     />
                     {validation.errors.max && (
                       <p className="mt-1 text-xs text-rose-400">
@@ -1308,13 +1406,13 @@ export default function App() {
                 <div className="mt-6 grid grid-cols-1 gap-6">
                   <div className="rounded-2xl border border-cyan-500/20 p-4">
                     <h3 className="mb-4 text-lg font-semibold text-cyan-300">
-                      {getBoardHeading("Player 1 Board", setup.player1)}
+                      {getPlayerBoardHeading(setup.player1, t)}
                     </h3>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <label className="mb-1 block text-sm text-slate-300">
-                          Min value
+                          {t("setup.minValue")}
                         </label>
                         <input
                           type="number"
@@ -1327,7 +1425,7 @@ export default function App() {
                           }
                           enterKeyHint="next"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                          placeholder="e.g. 40"
+                          placeholder={t("setup.minPlaceholder")}
                         />
                         {validation.errors.player1Min && (
                           <p className="mt-1 text-xs text-rose-400">
@@ -1338,7 +1436,7 @@ export default function App() {
 
                       <div>
                         <label className="mb-1 block text-sm text-slate-300">
-                          Max value
+                          {t("setup.maxValue")}
                         </label>
                         <input
                           type="number"
@@ -1351,7 +1449,7 @@ export default function App() {
                           }
                           enterKeyHint="next"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                          placeholder="e.g. 100"
+                          placeholder={t("setup.maxPlaceholder")}
                         />
                         {validation.errors.player1Max && (
                           <p className="mt-1 text-xs text-rose-400">
@@ -1364,13 +1462,13 @@ export default function App() {
 
                   <div className="rounded-2xl border border-pink-500/20 p-4">
                     <h3 className="mb-4 text-lg font-semibold text-pink-300">
-                      {getBoardHeading("Player 2 Board", setup.player2)}
+                      {getPlayerBoardHeading(setup.player2, t)}
                     </h3>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <label className="mb-1 block text-sm text-slate-300">
-                          Min value
+                          {t("setup.minValue")}
                         </label>
                         <input
                           type="number"
@@ -1383,7 +1481,7 @@ export default function App() {
                           }
                           enterKeyHint="next"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                          placeholder="e.g. 40"
+                          placeholder={t("setup.minPlaceholder")}
                         />
                         {validation.errors.player2Min && (
                           <p className="mt-1 text-xs text-rose-400">
@@ -1394,7 +1492,7 @@ export default function App() {
 
                       <div>
                         <label className="mb-1 block text-sm text-slate-300">
-                          Max value
+                          {t("setup.maxValue")}
                         </label>
                         <input
                           type="number"
@@ -1407,7 +1505,7 @@ export default function App() {
                           }
                           enterKeyHint="done"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
-                          placeholder="e.g. 100"
+                          placeholder={t("setup.maxPlaceholder")}
                         />
                         {validation.errors.player2Max && (
                           <p className="mt-1 text-xs text-rose-400">
@@ -1436,7 +1534,7 @@ export default function App() {
                     : "cursor-not-allowed bg-slate-700 text-slate-400",
                 ].join(" ")}
               >
-                Start game
+                {t("actions.startGame")}
               </button>
             </div>
           </form>
@@ -1446,14 +1544,17 @@ export default function App() {
       {claimModalOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/70 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-2xl font-bold">Number {selectedNumber}</h2>
+            <h2 className="text-2xl font-bold">
+              {t("claim.numberTitle", { number: selectedNumber })}
+            </h2>
 
             <p className="mt-2 text-sm text-slate-400">
               {!selectedClaim
-                ? "Select who checked this out."
-                : `Currently claimed by ${
-                    selectedClaim === "X" ? game.players.X : game.players.O
-                  }. You can change or remove it.`}
+                ? t("claim.selectWhoCheckedOut")
+                : t("claim.currentlyClaimedBy", {
+                    name:
+                      selectedClaim === "X" ? game.players.X : game.players.O,
+                  })}
             </p>
 
             <div className="mt-6 grid gap-3">
@@ -1493,7 +1594,7 @@ export default function App() {
                 onClick={handleUnclaimTile}
                 className="mt-4 w-full rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-medium text-amber-200 transition hover:bg-amber-500/20"
               >
-                Unclaim number
+                {t("actions.unclaimNumber")}
               </button>
             )}
 
@@ -1501,7 +1602,7 @@ export default function App() {
               onClick={handleCloseClaimModal}
               className="mt-4 w-full rounded-xl border border-slate-600 px-4 py-3 font-medium text-white transition hover:bg-slate-800"
             >
-              Cancel
+              {t("actions.cancel")}
             </button>
           </div>
         </div>
@@ -1510,11 +1611,10 @@ export default function App() {
       {resetConfirmOpen && (
         <div className="fixed inset-0 z-80 flex items-center justify-center bg-slate-950/70 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-2xl font-bold">Reset match?</h2>
+            <h2 className="text-2xl font-bold">{t("reset.title")}</h2>
 
             <p className="mt-2 text-sm text-slate-400">
-              This will clear the current round, reset the match score to 0 - 0,
-              and remove the current progress.
+              {t("reset.description")}
             </p>
 
             <div className="mt-6 grid gap-3">
@@ -1522,14 +1622,42 @@ export default function App() {
                 onClick={performResetMatch}
                 className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 font-medium text-rose-200 transition hover:bg-rose-500/20"
               >
-                Yes, reset match
+                {t("actions.confirmResetMatch")}
               </button>
 
               <button
                 onClick={() => setResetConfirmOpen(false)}
                 className="rounded-xl border border-slate-600 px-4 py-3 font-medium text-white transition hover:bg-slate-800"
               >
-                Cancel
+                {t("actions.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {changeSetupConfirmOpen && (
+        <div className="fixed inset-0 z-80 flex items-center justify-center bg-slate-950/70 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <h2 className="text-2xl font-bold">{t("changeSetup.title")}</h2>
+
+            <p className="mt-2 text-sm text-slate-400">
+              {t("changeSetup.description")}
+            </p>
+
+            <div className="mt-6 grid gap-3">
+              <button
+                onClick={performOpenNewSetup}
+                className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-medium text-amber-200 transition hover:bg-amber-500/20"
+              >
+                {t("actions.continueToSetup")}
+              </button>
+
+              <button
+                onClick={() => setChangeSetupConfirmOpen(false)}
+                className="rounded-xl border border-slate-600 px-4 py-3 font-medium text-white transition hover:bg-slate-800"
+              >
+                {t("actions.cancel")}
               </button>
             </div>
           </div>

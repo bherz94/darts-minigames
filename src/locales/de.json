@@ -1,0 +1,80 @@
+{
+    "app": {
+        "title": "Darts Tic-Tac-Toe"
+    },
+    "language": {
+        "label": "Sprache",
+        "english": "Englisch",
+        "german": "Deutsch"
+    },
+    "common": {
+        "minLowercase": "Min"
+    },
+    "validation": {
+        "minRange": "Min muss >= 2 und <= 167 sein",
+        "maxRange": "Max muss > {min} und <= 170 sein",
+        "bestOf": "Best of muss 0 oder eine ungerade Zahl >= 1 sein",
+        "players": "Beide Namen sind erforderlich und müssen unterschiedlich sein"
+    },
+    "match": {
+        "infiniteMatch": "Unendliches Match",
+        "bestOf": "Best of {count}",
+        "infiniteDescription": "Das Spiel läuft weiter, bis das Match manuell zurückgesetzt wird",
+        "firstToWins": "Wer zuerst {count} Runde{suffix} gewinnt, gewinnt das Match",
+        "roundsSuffix": "n",
+        "playerWinsMatch": "{name} gewinnt das Match!"
+    },
+    "round": {
+        "draw": "Runde unentschieden",
+        "playerWonRound": "{name} hat Runde {round} gewonnen"
+    },
+    "board": {
+        "sharedHint": "Tippe auf ein Feld, um es zu beanspruchen, zu ändern oder freizugeben",
+        "separateHint": "Tippe auf ein Feld, um es für den ausgewählten Spieler an- oder auszuschalten",
+        "sharedRangeInfo": "Bereich: {min} - {max} · X = {playerX} · O = {playerO}",
+        "separateRangeInfo": "{playerX}: {minX} - {maxX} · {playerO}: {minO} - {maxO}"
+    },
+    "setup": {
+        "startNewGame": "Neues Spiel starten",
+        "subtitle": "Gib den Checkout-Bereich und beide Spielernamen ein.",
+        "player1": "Spieler 1 (X)",
+        "player2": "Spieler 2 (O)",
+        "player1Placeholder": "Spieler 1",
+        "player2Placeholder": "Spieler 2",
+        "separateBoards": "Getrennte Boards",
+        "bestOf": "Best of",
+        "bestOfPlaceholder": "z. B. 5 oder 0 für unendlich",
+        "bestOfHint": "Verwende 0 für ein unendliches Match bis zum manuellen Zurücksetzen.",
+        "minValue": "Minimalwert",
+        "maxValue": "Maximalwert",
+        "minPlaceholder": "z. B. 40",
+        "maxPlaceholder": "z. B. 100",
+        "playerBoardNamed": "Board von {name}",
+        "playerBoardFallback": "Spieler-Board"
+    },
+    "changeSetup": {
+        "title": "Spieler / Bereich ändern?",
+        "description": "Dieses Match läuft noch. Du kannst zum Setup wechseln, um Spieler oder Bereiche zu ändern, oder abbrechen und das aktuelle Match fortsetzen."
+    },
+    "claim": {
+        "numberTitle": "Nummer {number}",
+        "selectWhoCheckedOut": "Wähle aus, wer diesen Checkout getroffen hat.",
+        "currentlyClaimedBy": "Aktuell beansprucht von {name}. Du kannst es ändern oder entfernen."
+    },
+    "reset": {
+        "title": "Match zurücksetzen?",
+        "description": "Dadurch wird die aktuelle Runde gelöscht, der Spielstand auf 0 - 0 zurückgesetzt und der aktuelle Fortschritt entfernt."
+    },
+    "actions": {
+        "continueToSetup": "Weiter zum Setup",
+        "startGame": "Spiel starten",
+        "nextRound": "Nächste Runde",
+        "finishGame": "Spiel beenden",
+        "undoLastAction": "Letzte Aktion rückgängig",
+        "resetMatch": "Match zurücksetzen",
+        "changePlayersRange": "Spieler / Nummerbereich ändern",
+        "unclaimNumber": "Nummer freigeben",
+        "cancel": "Abbrechen",
+        "confirmResetMatch": "Ja, Match zurücksetzen"
+    }
+}
