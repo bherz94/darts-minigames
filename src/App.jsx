@@ -417,6 +417,7 @@ export default function App() {
         window.localStorage.removeItem(STORAGE_KEY);
       } catch {
         // ignore
+        return null;
       }
       return null;
     }
