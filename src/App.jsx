@@ -13,19 +13,52 @@ const WIN_LINES = [
   [2, 4, 6],
 ];
 
-function randomUniqueNumbers(min, max, count = 9) {
-  const pool = [];
+function getThreeDartCheckoutScores() {
+  const singles = Array.from({ length: 20 }, (_, i) => i + 1);
+  const doubles = Array.from({ length: 20 }, (_, i) => (i + 1) * 2);
+  const trebles = Array.from({ length: 20 }, (_, i) => (i + 1) * 3);
 
-  for (let i = min; i <= max; i += 1) {
-    pool.push(i);
+  const allDartScores = [
+    ...new Set([0, ...singles, ...doubles, ...trebles, 25, 50]),
+  ];
+  const finishingDarts = [...doubles, 50]; // must end on double or bull
+
+  const checkoutScores = new Set();
+
+  for (const first of allDartScores) {
+    for (const second of allDartScores) {
+      for (const finish of finishingDarts) {
+        const total = first + second + finish;
+        if (total > 1 && total <= 170) {
+          checkoutScores.add(total);
+        }
+      }
+    }
   }
+
+  return [...checkoutScores].sort((a, b) => a - b);
+}
+
+const THREE_DART_CHECKOUTS = getThreeDartCheckoutScores();
+
+function randomUniqueCheckoutNumbers(min, max, count = 9) {
+  const pool = THREE_DART_CHECKOUTS.filter(
+    (score) => score >= min && score <= max,
+  );
 
   for (let i = pool.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  return pool.slice(0, count);
+  const result = pool.slice(0, count);
+
+  while (result.length < count) {
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    result.push(pool[randomIndex]);
+  }
+
+  return result;
 }
 
 function getWinner(claims) {
@@ -45,26 +78,21 @@ function validateSetup(min, max, player1, player2) {
   const minNum = Number(min);
   const maxNum = Number(max);
 
-  const validMin = Number.isInteger(minNum) && minNum > 2 && minNum < 167;
+  const validMin = Number.isInteger(minNum) && minNum > 2 && minNum <= 167;
   const validMax = Number.isInteger(maxNum) && maxNum > minNum && maxNum <= 170;
   const validPlayers =
     player1.trim().length > 0 &&
     player2.trim().length > 0 &&
     player1.trim() !== player2.trim();
 
-  const enoughNumbers = validMin && validMax && maxNum - minNum + 1 >= 9;
-
   return {
-    valid: validMin && validMax && validPlayers && enoughNumbers,
+    valid: validMin && validMax && validPlayers,
     errors: {
-      min: validMin ? "" : "Min must be > 2 and < 167",
-      max: validMax ? "" : "Max must be > min and <= 170",
+      min: validMin ? "" : "Min must be > 2 and <= 167",
+      max: validMax ? "" : `Max must be > ${min} and <= 170`,
       players: validPlayers
         ? ""
         : "Both names are required and must be different",
-      range: enoughNumbers
-        ? ""
-        : "Range must contain at least 9 distinct numbers",
     },
   };
 }
@@ -77,7 +105,7 @@ function buildNewGame(min, max, player1, player2) {
       X: player1.trim(),
       O: player2.trim(),
     },
-    boardNumbers: randomUniqueNumbers(Number(min), Number(max), 9),
+    boardNumbers: randomUniqueCheckoutNumbers(Number(min), Number(max), 9),
     claims: Array(9).fill(null),
     winner: null,
     winningLine: [],
@@ -192,7 +220,7 @@ export default function App() {
 
     setGame({
       ...game,
-      boardNumbers: randomUniqueNumbers(game.min, game.max, 9),
+      boardNumbers: randomUniqueCheckoutNumbers(game.min, game.max, 9),
       claims: Array(9).fill(null),
       winner: null,
       winningLine: [],
@@ -400,13 +428,10 @@ export default function App() {
               </div>
             </div>
 
-            {(validation.errors.players || validation.errors.range) && (
+            {(validation.errors.players) && (
               <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
                 {validation.errors.players && (
                   <div>{validation.errors.players}</div>
-                )}
-                {validation.errors.range && (
-                  <div>{validation.errors.range}</div>
                 )}
               </div>
             )}
