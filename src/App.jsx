@@ -78,7 +78,7 @@ function validateSetup(min, max, player1, player2) {
   const minNum = Number(min);
   const maxNum = Number(max);
 
-  const validMin = Number.isInteger(minNum) && minNum > 2 && minNum <= 167;
+  const validMin = Number.isInteger(minNum) && minNum >= 2 && minNum <= 167;
   const validMax = Number.isInteger(maxNum) && maxNum > minNum && maxNum <= 170;
   const validPlayers =
     player1.trim().length > 0 &&
@@ -88,7 +88,7 @@ function validateSetup(min, max, player1, player2) {
   return {
     valid: validMin && validMax && validPlayers,
     errors: {
-      min: validMin ? "" : "Min must be > 2 and <= 167",
+      min: validMin ? "" : "Min must be >= 2 and <= 167",
       max: validMax ? "" : `Max must be > ${min} and <= 170`,
       players: validPlayers
         ? ""
