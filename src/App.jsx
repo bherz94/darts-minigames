@@ -311,56 +311,196 @@ function applyRoundWinToMatch(game, roundWinner) {
   };
 }
 
-function hydrateLoadedGame(savedGame) {
-  if (!savedGame || typeof savedGame !== "object") {
-    return null;
-  }
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-  const normalizedSetupValues = buildStoredSetup({
-    separateBoards:
-      savedGame.setupValues?.separateBoards ?? savedGame.mode === "separate",
-    bestOf: savedGame.setupValues?.bestOf ?? String(savedGame.bestOf ?? 1),
-    min:
-      savedGame.setupValues?.min ??
-      (savedGame.mode === "shared" ? String(savedGame.min ?? "") : ""),
-    max:
-      savedGame.setupValues?.max ??
-      (savedGame.mode === "shared" ? String(savedGame.max ?? "") : ""),
-    player1Min:
-      savedGame.setupValues?.player1Min ??
-      (savedGame.mode === "separate"
-        ? String(savedGame.boards?.X?.min ?? "")
-        : ""),
-    player1Max:
-      savedGame.setupValues?.player1Max ??
-      (savedGame.mode === "separate"
-        ? String(savedGame.boards?.X?.max ?? "")
-        : ""),
-    player2Min:
-      savedGame.setupValues?.player2Min ??
-      (savedGame.mode === "separate"
-        ? String(savedGame.boards?.O?.min ?? "")
-        : ""),
-    player2Max:
-      savedGame.setupValues?.player2Max ??
-      (savedGame.mode === "separate"
-        ? String(savedGame.boards?.O?.max ?? "")
-        : ""),
-    player1: savedGame.setupValues?.player1 ?? savedGame.players?.X ?? "",
-    player2: savedGame.setupValues?.player2 ?? savedGame.players?.O ?? "",
+function isValidClaim(value) {
+  return value === null || value === "X" || value === "O";
+}
+
+function normalizeClaims(claims) {
+  if (!Array.isArray(claims) || claims.length !== 9) return null;
+  if (!claims.every(isValidClaim)) return null;
+  return claims;
+}
+
+function normalizeWinningLine(line) {
+  if (!Array.isArray(line)) return [];
+  return line.filter(
+    (value) => Number.isInteger(value) && value >= 0 && value <= 8,
+  );
+}
+
+function sanitizeBoard(rawBoard, fallbackOwner) {
+  if (!isPlainObject(rawBoard)) return null;
+
+  const min = Number(rawBoard.min);
+  const max = Number(rawBoard.max);
+
+  const rangeValidation = validateRange(min, max);
+  if (!rangeValidation.valid) return null;
+
+  const claims = normalizeClaims(rawBoard.claims);
+  if (!claims) return null;
+
+  const boardNumbers =
+    Array.isArray(rawBoard.boardNumbers) &&
+    rawBoard.boardNumbers.length === 9 &&
+    rawBoard.boardNumbers.every((n) => Number.isInteger(n))
+      ? rawBoard.boardNumbers
+      : randomUniqueCheckoutNumbers(min, max, 9);
+
+  const recomputedBoard = recomputeSeparateBoardState({
+    min,
+    max,
+    boardNumbers,
+    claims,
+    winner: null,
+    winningLine: [],
+    isDraw: false,
+    owner: fallbackOwner,
   });
 
   return {
-    ...savedGame,
-    bestOf: Number(savedGame.bestOf ?? 1),
-    winsNeeded: getWinsNeeded(savedGame.bestOf ?? 1),
-    matchWins: {
-      X: Number(savedGame.matchWins?.X ?? 0),
-      O: Number(savedGame.matchWins?.O ?? 0),
-    },
-    matchWinner: savedGame.matchWinner ?? null,
+    ...recomputedBoard,
+    owner: fallbackOwner,
+  };
+}
+
+function hydrateLoadedGame(savedGame) {
+  if (!isPlainObject(savedGame)) {
+    return null;
+  }
+
+  const mode = savedGame.mode;
+  if (mode !== "shared" && mode !== "separate") {
+    return null;
+  }
+
+  const playerX = String(savedGame.players?.X ?? "").trim();
+  const playerO = String(savedGame.players?.O ?? "").trim();
+
+  if (!playerX || !playerO || playerX === playerO) {
+    return null;
+  }
+
+  const bestOf = Number(savedGame.bestOf ?? 1);
+  const bestOfValidation = validateBestOf(bestOf);
+  if (!bestOfValidation.valid) {
+    return null;
+  }
+
+  const setupValues = buildStoredSetup({
+    separateBoards:
+      savedGame.setupValues?.separateBoards ?? mode === "separate",
+    bestOf: savedGame.setupValues?.bestOf ?? String(bestOf),
+    min:
+      savedGame.setupValues?.min ??
+      (mode === "shared" ? String(savedGame.min ?? "") : ""),
+    max:
+      savedGame.setupValues?.max ??
+      (mode === "shared" ? String(savedGame.max ?? "") : ""),
+    player1Min:
+      savedGame.setupValues?.player1Min ??
+      (mode === "separate" ? String(savedGame.boards?.X?.min ?? "") : ""),
+    player1Max:
+      savedGame.setupValues?.player1Max ??
+      (mode === "separate" ? String(savedGame.boards?.X?.max ?? "") : ""),
+    player2Min:
+      savedGame.setupValues?.player2Min ??
+      (mode === "separate" ? String(savedGame.boards?.O?.min ?? "") : ""),
+    player2Max:
+      savedGame.setupValues?.player2Max ??
+      (mode === "separate" ? String(savedGame.boards?.O?.max ?? "") : ""),
+    player1: savedGame.setupValues?.player1 ?? playerX,
+    player2: savedGame.setupValues?.player2 ?? playerO,
+  });
+
+  const winsNeeded = getWinsNeeded(bestOf);
+  const matchWins = {
+    X: Number.isInteger(savedGame.matchWins?.X) ? savedGame.matchWins.X : 0,
+    O: Number.isInteger(savedGame.matchWins?.O) ? savedGame.matchWins.O : 0,
+  };
+
+  const rawMatchWinner = savedGame.matchWinner;
+  const matchWinner =
+    rawMatchWinner === "X" || rawMatchWinner === "O" ? rawMatchWinner : null;
+
+  const baseGame = {
+    mode,
+    setupValues,
+    bestOf,
+    winsNeeded,
+    matchWins,
+    matchWinner,
     matchFinished: Boolean(savedGame.matchFinished),
-    setupValues: normalizedSetupValues,
+    players: {
+      X: playerX,
+      O: playerO,
+    },
+  };
+
+  if (mode === "shared") {
+    const min = Number(savedGame.min);
+    const max = Number(savedGame.max);
+
+    const rangeValidation = validateRange(min, max);
+    if (!rangeValidation.valid) {
+      return null;
+    }
+
+    const claims = normalizeClaims(savedGame.claims);
+    if (!claims) {
+      return null;
+    }
+
+    const boardNumbers =
+      Array.isArray(savedGame.boardNumbers) &&
+      savedGame.boardNumbers.length === 9 &&
+      savedGame.boardNumbers.every((n) => Number.isInteger(n))
+        ? savedGame.boardNumbers
+        : randomUniqueCheckoutNumbers(min, max, 9);
+
+    const recomputedGame = recomputeSharedGameState(
+      {
+        ...baseGame,
+        min,
+        max,
+        boardNumbers,
+        claims: Array(9).fill(null),
+        winner: null,
+        winningLine: [],
+        isDraw: false,
+      },
+      claims,
+    );
+
+    return {
+      ...recomputedGame,
+      winningLine: normalizeWinningLine(recomputedGame.winningLine),
+    };
+  }
+
+  const boardX = sanitizeBoard(savedGame.boards?.X, "X");
+  const boardO = sanitizeBoard(savedGame.boards?.O, "O");
+
+  if (!boardX || !boardO) {
+    return null;
+  }
+
+  return {
+    ...baseGame,
+    boards: {
+      X: {
+        ...boardX,
+        winningLine: normalizeWinningLine(boardX.winningLine),
+      },
+      O: {
+        ...boardO,
+        winningLine: normalizeWinningLine(boardO.winningLine),
+      },
+    },
   };
 }
 
@@ -411,13 +551,22 @@ export default function App() {
   const [game, setGame] = useState(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      return saved ? hydrateLoadedGame(JSON.parse(saved)) : null;
+      if (!saved) return null;
+
+      const parsed = JSON.parse(saved);
+      const hydrated = hydrateLoadedGame(parsed);
+
+      if (!hydrated) {
+        window.localStorage.removeItem(STORAGE_KEY);
+        return null;
+      }
+
+      return hydrated;
     } catch {
       try {
         window.localStorage.removeItem(STORAGE_KEY);
       } catch {
         // ignore
-        return null;
       }
       return null;
     }
@@ -429,10 +578,14 @@ export default function App() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   useEffect(() => {
-    if (game) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
+    try {
+      if (game) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
+      } else {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // ignore storage write failures
     }
   }, [game]);
 
@@ -802,7 +955,7 @@ export default function App() {
                   <button
                     onClick={() => setActiveBoard("X")}
                     className={[
-                      "rounded-xl px-5 py-3 font-semibold transition cursor-pointer",
+                      "rounded-xl px-5 py-3 font-semibold transition",
                       activeBoard === "X"
                         ? "bg-cyan-400 text-slate-950"
                         : "text-cyan-300 hover:bg-slate-800",
@@ -814,7 +967,7 @@ export default function App() {
                   <button
                     onClick={() => setActiveBoard("O")}
                     className={[
-                      "rounded-xl px-5 py-3 font-semibold transition cursor-pointer",
+                      "rounded-xl px-5 py-3 font-semibold transition",
                       activeBoard === "O"
                         ? "bg-pink-400 text-slate-950"
                         : "text-pink-300 hover:bg-slate-800",
@@ -848,7 +1001,7 @@ export default function App() {
                       className={[
                         "relative aspect-square overflow-hidden rounded-2xl border transition",
                         "flex items-center justify-center",
-                        "border-slate-700 bg-slate-900 hover:border-slate-500 hover:bg-slate-800 cursor-pointer",
+                        "border-slate-700 bg-slate-900 hover:border-slate-500 hover:bg-slate-800",
                         isWinningTile ? "ring-4 ring-emerald-400" : "",
                         game.mode === "shared"
                           ? game.winner ||
@@ -896,14 +1049,14 @@ export default function App() {
               <div className="mt-8 flex flex-wrap justify-center gap-3">
                 <button
                   onClick={handleResetMatch}
-                  className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 font-medium text-amber-200 transition hover:bg-amber-500/20 cursor-pointer"
+                  className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 font-medium text-amber-200 transition hover:bg-amber-500/20"
                 >
                   Reset Match
                 </button>
 
                 <button
                   onClick={handleNewSetup}
-                  className="rounded-xl border border-slate-600 px-4 py-2 font-medium text-white transition hover:bg-slate-800 cursor-pointer"
+                  className="rounded-xl border border-slate-600 px-4 py-2 font-medium text-white transition hover:bg-slate-800"
                 >
                   Change Players / Range
                 </button>
@@ -1164,7 +1317,7 @@ export default function App() {
               className={[
                 "mt-6 w-full rounded-xl px-4 py-3 font-semibold transition",
                 validation.valid
-                  ? "bg-cyan-400 text-slate-950 hover:opacity-90 cursor-pointer"
+                  ? "bg-cyan-400 text-slate-950 hover:opacity-90"
                   : "cursor-not-allowed bg-slate-700 text-slate-400",
               ].join(" ")}
             >
@@ -1175,7 +1328,7 @@ export default function App() {
       )}
 
       {claimModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/70 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <h2 className="text-2xl font-bold">Number {selectedNumber}</h2>
 
@@ -1191,7 +1344,7 @@ export default function App() {
               <button
                 onClick={() => handleClaimTile("X")}
                 className={[
-                  "rounded-xl border px-4 py-4 text-left transition cursor-pointer",
+                  "rounded-xl border px-4 py-4 text-left transition",
                   selectedClaim === "X"
                     ? "border-cyan-400 bg-cyan-500/20"
                     : "border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20",
@@ -1206,7 +1359,7 @@ export default function App() {
               <button
                 onClick={() => handleClaimTile("O")}
                 className={[
-                  "rounded-xl border px-4 py-4 text-left transition cursor-pointer",
+                  "rounded-xl border px-4 py-4 text-left transition",
                   selectedClaim === "O"
                     ? "border-pink-400 bg-pink-500/20"
                     : "border-pink-500/40 bg-pink-500/10 hover:bg-pink-500/20",
@@ -1222,7 +1375,7 @@ export default function App() {
             {selectedClaim && (
               <button
                 onClick={handleUnclaimTile}
-                className="mt-4 w-full rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-medium text-amber-200 transition hover:bg-amber-500/20 cursor-pointer"
+                className="mt-4 w-full rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-medium text-amber-200 transition hover:bg-amber-500/20"
               >
                 Unclaim number
               </button>
@@ -1230,7 +1383,7 @@ export default function App() {
 
             <button
               onClick={handleCloseClaimModal}
-              className="mt-4 w-full rounded-xl border border-slate-600 px-4 py-3 font-medium text-white transition hover:bg-slate-800 cursor-pointer"
+              className="mt-4 w-full rounded-xl border border-slate-600 px-4 py-3 font-medium text-white transition hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -1253,14 +1406,14 @@ export default function App() {
               {isFinalRoundWin ? (
                 <button
                   onClick={handleFinishGame}
-                  className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90 cursor-pointer"
+                  className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
                 >
                   Finish Game
                 </button>
               ) : (
                 <button
                   onClick={handleNextRound}
-                  className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90 cursor-pointer"
+                  className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
                 >
                   Next Round
                 </button>
@@ -1272,7 +1425,7 @@ export default function App() {
                 className={[
                   "rounded-xl px-4 py-3 font-medium transition",
                   canUndo
-                    ? "border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 cursor-pointer"
+                    ? "border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
                     : "cursor-not-allowed bg-slate-700 text-slate-400",
                 ].join(" ")}
               >
@@ -1284,7 +1437,7 @@ export default function App() {
       )}
 
       {resetConfirmOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 px-4">
+        <div className="fixed inset-0 z-80 flex items-center justify-center bg-slate-950/70 px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <h2 className="text-2xl font-bold">Reset match?</h2>
 
@@ -1296,14 +1449,14 @@ export default function App() {
             <div className="mt-6 grid gap-3">
               <button
                 onClick={performResetMatch}
-                className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 font-medium text-rose-200 transition hover:bg-rose-500/20 cursor-pointer"
+                className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 font-medium text-rose-200 transition hover:bg-rose-500/20"
               >
                 Yes, reset match
               </button>
 
               <button
                 onClick={() => setResetConfirmOpen(false)}
-                className="rounded-xl border border-slate-600 px-4 py-3 font-medium text-white transition hover:bg-slate-800 cursor-pointer"
+                className="rounded-xl border border-slate-600 px-4 py-3 font-medium text-white transition hover:bg-slate-800"
               >
                 Cancel
               </button>
