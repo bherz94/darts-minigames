@@ -44,7 +44,7 @@
         "separateBoards": "Getrennte Boards",
         "bestOf": "Best of",
         "bestOfPlaceholder": "z. B. 5 oder 0 für unendlich",
-        "bestOfHint": "Verwende 0 für ein unendliches Match bis zum manuellen Zurücksetzen.",
+        "bestOfHint": "Verwende 0 für ein endloses Match.",
         "minValue": "Minimalwert",
         "maxValue": "Maximalwert",
         "minPlaceholder": "z. B. 40",

@@ -920,6 +920,8 @@ export default function App() {
     });
   }
 
+  const showGameHint = isMatchOngoing(game) && !game.matchFinished;
+
   function handleResetMatch() {
     if (!game) return;
 
@@ -1049,6 +1051,7 @@ export default function App() {
 
                 {!showRoundOutcomePanel &&
                   game.mode === "shared" &&
+                  !showGameHint &&
                   !game.matchWinner &&
                   !game.winner &&
                   !game.isDraw && (
@@ -1059,6 +1062,7 @@ export default function App() {
 
                 {!showRoundOutcomePanel &&
                   game.mode === "separate" &&
+                  !showGameHint &&
                   !game.matchWinner &&
                   !game.boards.X.winner &&
                   !game.boards.O.winner &&
