@@ -653,6 +653,11 @@ export default function App() {
     setHistory((prev) => [...prev, structuredClone(game)]);
   }
 
+  function handleSubmitSetup(e) {
+    e.preventDefault();
+    handleStartGame();
+  }
+
   function handleStartGame() {
     if (!validation.valid) return;
 
@@ -1064,7 +1069,10 @@ export default function App() {
 
       {setupModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 px-4 py-4 sm:flex sm:items-center sm:justify-center sm:py-6">
-          <div className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-h-[calc(100dvh-3rem)]">
+          <form
+            onSubmit={handleSubmitSetup}
+            className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-h-[calc(100dvh-3rem)]"
+          >
             <div className="overflow-y-auto p-6 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
               <h2 className="text-2xl font-bold">Start new game</h2>
               <p className="mt-2 text-sm text-slate-400">
@@ -1082,6 +1090,7 @@ export default function App() {
                     onChange={(e) =>
                       setSetup((prev) => ({ ...prev, player1: e.target.value }))
                     }
+                    enterKeyHint="next"
                     className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                     placeholder="Player 1"
                   />
@@ -1097,6 +1106,7 @@ export default function App() {
                     onChange={(e) =>
                       setSetup((prev) => ({ ...prev, player2: e.target.value }))
                     }
+                    enterKeyHint="next"
                     className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                     placeholder="Player 2"
                   />
@@ -1131,6 +1141,7 @@ export default function App() {
                   onChange={(e) =>
                     setSetup((prev) => ({ ...prev, bestOf: e.target.value }))
                   }
+                  enterKeyHint="next"
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                   placeholder="e.g. 5 or 0 for infinite"
                 />
@@ -1158,6 +1169,7 @@ export default function App() {
                       onChange={(e) =>
                         setSetup((prev) => ({ ...prev, min: e.target.value }))
                       }
+                      enterKeyHint="next"
                       className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                       placeholder="e.g. 40"
                     />
@@ -1178,6 +1190,7 @@ export default function App() {
                       onChange={(e) =>
                         setSetup((prev) => ({ ...prev, max: e.target.value }))
                       }
+                      enterKeyHint="done"
                       className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                       placeholder="e.g. 100"
                     />
@@ -1211,6 +1224,7 @@ export default function App() {
                               player1Min: e.target.value,
                             }))
                           }
+                          enterKeyHint="next"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                           placeholder="e.g. 40"
                         />
@@ -1234,6 +1248,7 @@ export default function App() {
                               player1Max: e.target.value,
                             }))
                           }
+                          enterKeyHint="next"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                           placeholder="e.g. 100"
                         />
@@ -1265,6 +1280,7 @@ export default function App() {
                               player2Min: e.target.value,
                             }))
                           }
+                          enterKeyHint="next"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                           placeholder="e.g. 40"
                         />
@@ -1288,6 +1304,7 @@ export default function App() {
                               player2Max: e.target.value,
                             }))
                           }
+                          enterKeyHint="done"
                           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
                           placeholder="e.g. 100"
                         />
@@ -1309,7 +1326,7 @@ export default function App() {
               )}
 
               <button
-                onClick={handleStartGame}
+                type="submit"
                 disabled={!validation.valid}
                 className={[
                   "mt-6 w-full rounded-xl px-4 py-3 font-semibold transition",
@@ -1321,7 +1338,7 @@ export default function App() {
                 Start game
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
