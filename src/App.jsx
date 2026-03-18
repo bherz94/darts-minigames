@@ -221,6 +221,7 @@ function buildNewGame(setup) {
       winner: null,
       winningLine: [],
       isDraw: false,
+      roundNumber: 1,
     };
   }
 
@@ -240,6 +241,7 @@ function buildNewGame(setup) {
       X: createBoard(setup.player1Min, setup.player1Max, "X"),
       O: createBoard(setup.player2Min, setup.player2Max, "O"),
     },
+    roundNumber: 1,
   };
 }
 
@@ -271,6 +273,7 @@ function recomputeSeparateBoardState(board) {
 function resetSharedRound(game) {
   return {
     ...game,
+    roundNumber: (game.roundNumber ?? 1) + 1,
     boardNumbers: randomUniqueCheckoutNumbers(game.min, game.max, 9),
     claims: Array(9).fill(null),
     winner: null,
@@ -282,6 +285,7 @@ function resetSharedRound(game) {
 function resetSeparateRound(game) {
   return {
     ...game,
+    roundNumber: (game.roundNumber ?? 1) + 1,
     boards: {
       X: createBoard(game.boards.X.min, game.boards.X.max, "X"),
       O: createBoard(game.boards.O.min, game.boards.O.max, "O"),
@@ -439,6 +443,10 @@ function hydrateLoadedGame(savedGame) {
       X: playerX,
       O: playerO,
     },
+    roundNumber:
+      Number.isInteger(savedGame.roundNumber) && savedGame.roundNumber >= 1
+        ? savedGame.roundNumber
+        : matchWins.X + matchWins.O + 1,
   };
 
   if (mode === "shared") {
@@ -534,6 +542,40 @@ function isMatchOngoing(game) {
   );
 }
 
+function getSeparateRoundState(game) {
+  if (!game || game.mode !== "separate") return null;
+
+  if (game.boards.X.winner) {
+    return {
+      finished: true,
+      type: "win",
+      winnerSymbol: "X",
+    };
+  }
+
+  if (game.boards.O.winner) {
+    return {
+      finished: true,
+      type: "win",
+      winnerSymbol: "O",
+    };
+  }
+
+  if (game.boards.X.isDraw && game.boards.O.isDraw) {
+    return {
+      finished: true,
+      type: "draw",
+      winnerSymbol: null,
+    };
+  }
+
+  return {
+    finished: false,
+    type: null,
+    winnerSymbol: null,
+  };
+}
+
 export default function App() {
   const [setup, setSetup] = useState({
     separateBoards: false,
@@ -594,6 +636,9 @@ export default function App() {
   const setupModalOpen = !game;
   const isSeparateMode = game?.mode === "separate";
   const currentBoard = isSeparateMode && game ? game.boards[activeBoard] : null;
+  const separateRoundState = isSeparateMode
+    ? getSeparateRoundState(game)
+    : null;
 
   const claimModalOpen =
     !isSeparateMode &&
@@ -607,20 +652,18 @@ export default function App() {
   const roundWinnerSymbol =
     game?.mode === "shared"
       ? (game?.winner ?? null)
-      : game?.boards?.X?.winner
-        ? "X"
-        : game?.boards?.O?.winner
-          ? "O"
-          : null;
+      : (separateRoundState?.winnerSymbol ?? null);
 
   const roundWinnerName =
     roundWinnerSymbol && game ? game.players[roundWinnerSymbol] : "";
 
-  const roundWinModalOpen =
-    !!game && !!roundWinnerSymbol && !game.matchFinished;
+  const roundIsDraw =
+    !!game &&
+    (game.mode === "shared"
+      ? game.isDraw && !game.winner
+      : separateRoundState?.type === "draw");
 
-  const anyOverlayOpen =
-    setupModalOpen || claimModalOpen || roundWinModalOpen || resetConfirmOpen;
+  const anyOverlayOpen = setupModalOpen || claimModalOpen || resetConfirmOpen;
 
   const selectedNumber =
     game && selectedTileIndex !== null
@@ -647,6 +690,14 @@ export default function App() {
     game.winsNeeded !== null &&
     game.matchWinner === roundWinnerSymbol &&
     !game.matchFinished;
+
+  const showRoundOutcomePanel =
+    !!game && !game.matchFinished && (!!roundWinnerSymbol || roundIsDraw);
+
+  const separateRoundFinished =
+    game?.mode === "separate" && !!separateRoundState?.finished;
+
+  const roundNumber = game?.roundNumber ?? 1;
 
   function saveHistorySnapshot() {
     if (!game) return;
@@ -687,6 +738,7 @@ export default function App() {
 
     const board = game.boards[activeBoard];
     if (
+      separateRoundFinished ||
       board.winner ||
       board.isDraw ||
       game.matchWinner ||
@@ -788,6 +840,7 @@ export default function App() {
     if (game.mode === "shared") {
       setGame({
         ...resetSharedRound(game),
+        roundNumber: 1,
         matchWins: { X: 0, O: 0 },
         matchWinner: null,
         matchFinished: false,
@@ -797,6 +850,7 @@ export default function App() {
 
     setGame({
       ...resetSeparateRound(game),
+      roundNumber: 1,
       matchWins: { X: 0, O: 0 },
       matchWinner: null,
       matchFinished: false,
@@ -861,8 +915,8 @@ export default function App() {
           anyOverlayOpen ? "pointer-events-none select-none blur-sm" : ""
         }
       >
-        <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-8">
-          <div className="mb-8 text-center">
+        <main className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-4 py-4 md:py-5">
+          <div className="mb-5 text-center">
             <h1 className="text-4xl font-bold tracking-tight">
               Darts Tic-Tac-Toe
             </h1>
@@ -889,7 +943,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="mb-6 flex flex-col items-center gap-3 text-center">
+              <div className="mb-5 flex flex-col items-center gap-3 text-center">
                 {game.mode === "shared" &&
                   game.matchWinner &&
                   game.matchFinished && (
@@ -898,16 +952,16 @@ export default function App() {
                     </div>
                   )}
 
-                {game.mode === "shared" &&
-                  !game.matchWinner &&
-                  !game.winner &&
-                  game.isDraw && (
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-3 text-xl font-semibold text-amber-300">
-                      Draw game
+                {game.mode === "separate" &&
+                  game.matchWinner &&
+                  game.matchFinished && (
+                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xl font-semibold text-emerald-300">
+                      {matchWinnerName} wins the match!
                     </div>
                   )}
 
-                {game.mode === "shared" &&
+                {!showRoundOutcomePanel &&
+                  game.mode === "shared" &&
                   !game.matchWinner &&
                   !game.winner &&
                   !game.isDraw && (
@@ -916,22 +970,67 @@ export default function App() {
                     </div>
                   )}
 
-                {game.mode === "separate" && (
+                {!showRoundOutcomePanel &&
+                  game.mode === "separate" &&
+                  !game.matchWinner &&
+                  !game.boards.X.winner &&
+                  !game.boards.O.winner &&
+                  !(game.boards.X.isDraw && game.boards.O.isDraw) && (
+                    <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
+                      Tap a square to toggle it on or off for the selected
+                      player
+                    </div>
+                  )}
+
+                {showRoundOutcomePanel && (
                   <>
-                    {game.matchWinner && game.matchFinished && (
-                      <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xl font-semibold text-emerald-300">
-                        {matchWinnerName} wins the match!
+                    {roundIsDraw ? (
+                      <div className="text-2xl font-bold text-amber-300">
+                        Round draw
+                      </div>
+                    ) : (
+                      <div className="text-2xl font-bold text-emerald-300">
+                        {roundWinnerName} won round {roundNumber}
                       </div>
                     )}
 
-                    {!game.matchWinner &&
-                      !game.boards.X.winner &&
-                      !game.boards.O.winner && (
-                        <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
-                          Tap a square to toggle it on or off for the selected
-                          player
-                        </div>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {roundIsDraw ? (
+                        <button
+                          onClick={handleNextRound}
+                          className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
+                        >
+                          Next Round
+                        </button>
+                      ) : isFinalRoundWin ? (
+                        <button
+                          onClick={handleFinishGame}
+                          className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
+                        >
+                          Finish Game
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleNextRound}
+                          className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
+                        >
+                          Next Round
+                        </button>
                       )}
+
+                      <button
+                        onClick={handleUndoLastAction}
+                        disabled={!canUndo}
+                        className={[
+                          "rounded-xl px-4 py-3 font-medium transition",
+                          canUndo
+                            ? "border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
+                            : "cursor-not-allowed bg-slate-700 text-slate-400",
+                        ].join(" ")}
+                      >
+                        Undo Last Action
+                      </button>
+                    </div>
                   </>
                 )}
 
@@ -952,7 +1051,7 @@ export default function App() {
               </div>
 
               {game.mode === "separate" && (
-                <div className="mb-6 flex rounded-2xl border border-slate-700 bg-slate-900 p-1">
+                <div className="mb-5 flex rounded-2xl border border-slate-700 bg-slate-900 p-1">
                   <button
                     onClick={() => setActiveBoard("X")}
                     className={[
@@ -979,7 +1078,7 @@ export default function App() {
                 </div>
               )}
 
-              <div className="grid w-full max-w-4xl grid-cols-3 gap-4">
+              <div className="grid w-full max-w-[min(92vw,42rem)] grid-cols-3 gap-3 md:max-w-[min(78vw,34rem)] lg:max-w-[min(70vw,32rem)]">
                 {boardNumbers.map((number, index) => {
                   const claim = boardClaims[index];
                   const isWinningTile = boardWinningLine.includes(index);
@@ -994,7 +1093,8 @@ export default function App() {
                             game.isDraw ||
                             !!game.matchWinner ||
                             !!game.matchFinished
-                          : !!currentBoard.winner ||
+                          : separateRoundFinished ||
+                            !!currentBoard.winner ||
                             currentBoard.isDraw ||
                             !!game.matchWinner ||
                             !!game.matchFinished
@@ -1011,7 +1111,8 @@ export default function App() {
                             game.matchFinished
                             ? "cursor-default"
                             : "cursor-pointer"
-                          : currentBoard.winner ||
+                          : separateRoundFinished ||
+                              currentBoard.winner ||
                               currentBoard.isDraw ||
                               game.matchWinner ||
                               game.matchFinished
@@ -1020,7 +1121,7 @@ export default function App() {
                       ].join(" ")}
                     >
                       {!claim && (
-                        <span className="flex h-full w-full items-center justify-center text-6xl font-black text-slate-100 sm:text-7xl md:text-8xl">
+                        <span className="flex h-full w-full items-center justify-center text-5xl font-black text-slate-100 sm:text-6xl md:text-6xl lg:text-7xl">
                           {number}
                         </span>
                       )}
@@ -1033,7 +1134,7 @@ export default function App() {
 
                           <span
                             className={[
-                              "text-6xl font-black sm:text-7xl md:text-8xl",
+                              "text-5xl font-black sm:text-6xl md:text-6xl lg:text-7xl",
                               claim === "X" ? "text-cyan-400" : "",
                               claim === "O" ? "text-pink-400" : "",
                             ].join(" ")}
@@ -1047,7 +1148,7 @@ export default function App() {
                 })}
               </div>
 
-              <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   onClick={handleResetMatch}
                   className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 font-medium text-amber-200 transition hover:bg-amber-500/20"
@@ -1402,51 +1503,6 @@ export default function App() {
             >
               Cancel
             </button>
-          </div>
-        </div>
-      )}
-
-      {roundWinModalOpen && roundWinnerName && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/70 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-2xl font-bold">{roundWinnerName} won!</h2>
-
-            <p className="mt-2 text-sm text-slate-400">
-              {isFinalRoundWin
-                ? "This was the deciding round. You can finish the game and keep the board visible, or undo the last action."
-                : "Choose whether to continue to the next round or undo the last action."}
-            </p>
-
-            <div className="mt-6 grid gap-3">
-              {isFinalRoundWin ? (
-                <button
-                  onClick={handleFinishGame}
-                  className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
-                >
-                  Finish Game
-                </button>
-              ) : (
-                <button
-                  onClick={handleNextRound}
-                  className="rounded-xl bg-white px-4 py-3 font-medium text-slate-900 transition hover:opacity-90"
-                >
-                  Next Round
-                </button>
-              )}
-
-              <button
-                onClick={handleUndoLastAction}
-                disabled={!canUndo}
-                className={[
-                  "rounded-xl px-4 py-3 font-medium transition",
-                  canUndo
-                    ? "border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
-                    : "cursor-not-allowed bg-slate-700 text-slate-400",
-                ].join(" ")}
-              >
-                Undo Last Action
-              </button>
-            </div>
           </div>
         </div>
       )}
