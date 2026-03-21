@@ -990,7 +990,7 @@ export default function App() {
     : (game?.winningLine ?? []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white select-none">
       <div
         className={
           anyOverlayOpen ? "pointer-events-none select-none blur-sm" : ""
