@@ -1,6 +1,7 @@
 {
     "app": {
-        "title": "Darts Tic-Tac-Toe"
+        "title": "Darts Tic-Tac-Toe",
+        "name": "Darts Minigames"
     },
     "language": {
         "label": "Language",
@@ -9,6 +10,50 @@
     },
     "common": {
         "minLowercase": "min"
+    },
+    "nav": {
+        "back": "Back"
+    },
+    "home": {
+        "subtitle": "Choose a game to get started",
+        "tictactoe": {
+            "title": "Tic-Tac-Toe Checkout",
+            "description": "Race to claim tiles on a 3×3 grid with valid dart checkouts"
+        },
+        "dartcounter": {
+            "title": "Dart Counter",
+            "description": "Track 301 or 501 scores for 2–6 players"
+        }
+    },
+    "counter": {
+        "title": "Dart Counter",
+        "setup": {
+            "startingScore": "Starting score",
+            "addPlayer": "Add player",
+            "playerPlaceholder": "Player {n}",
+            "startGame": "Start game"
+        },
+        "game": {
+            "enterScore": "Enter score",
+            "submit": "Submit",
+            "bust": "Bust!",
+            "undo": "Undo last throw",
+            "reset": "Reset game"
+        },
+        "win": {
+            "title": "{name} wins!",
+            "playAgain": "Play again",
+            "newGame": "New game"
+        },
+        "reset": {
+            "title": "Reset game?",
+            "description": "This will clear all scores and return to the setup screen.",
+            "confirm": "Yes, reset"
+        },
+        "validation": {
+            "duplicateNames": "All player names must be unique",
+            "emptyName": "All players need a name"
+        }
     },
     "validation": {
         "minRange": "Min must be >= 2 and <= 167",

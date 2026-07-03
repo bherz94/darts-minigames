@@ -1,6 +1,7 @@
 {
     "app": {
-        "title": "Darts Tic-Tac-Toe"
+        "title": "Darts Tic-Tac-Toe",
+        "name": "Darts-Minispiele"
     },
     "language": {
         "label": "Sprache",
@@ -9,6 +10,50 @@
     },
     "common": {
         "minLowercase": "Min"
+    },
+    "nav": {
+        "back": "Zurück"
+    },
+    "home": {
+        "subtitle": "Wähle ein Spiel",
+        "tictactoe": {
+            "title": "Tic-Tac-Toe Checkout",
+            "description": "Beanspruche Felder auf einem 3×3-Gitter mit gültigen Dart-Checkouts"
+        },
+        "dartcounter": {
+            "title": "Darts-Zähler",
+            "description": "Verfolge 301- oder 501-Punkte für 2–6 Spieler"
+        }
+    },
+    "counter": {
+        "title": "Darts-Zähler",
+        "setup": {
+            "startingScore": "Startwert",
+            "addPlayer": "Spieler hinzufügen",
+            "playerPlaceholder": "Spieler {n}",
+            "startGame": "Spiel starten"
+        },
+        "game": {
+            "enterScore": "Punkte eingeben",
+            "submit": "OK",
+            "bust": "Überworfen!",
+            "undo": "Letzten Wurf zurücksetzen",
+            "reset": "Spiel zurücksetzen"
+        },
+        "win": {
+            "title": "{name} gewinnt!",
+            "playAgain": "Nochmal spielen",
+            "newGame": "Neues Spiel"
+        },
+        "reset": {
+            "title": "Spiel zurücksetzen?",
+            "description": "Damit werden alle Punkte gelöscht und du kommst zurück zur Einrichtung.",
+            "confirm": "Ja, zurücksetzen"
+        },
+        "validation": {
+            "duplicateNames": "Alle Spielernamen müssen eindeutig sein",
+            "emptyName": "Alle Spieler brauchen einen Namen"
+        }
     },
     "validation": {
         "minRange": "Min muss >= 2 und <= 167 sein",
