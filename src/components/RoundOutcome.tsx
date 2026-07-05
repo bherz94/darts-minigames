@@ -1,4 +1,15 @@
-import { useTranslation } from "../hooks/useTranslation.jsx";
+import { useTranslation } from "../hooks/useTranslation";
+
+interface RoundOutcomeProps {
+  roundWinnerName: string;
+  roundIsDraw: boolean;
+  roundNumber: number;
+  isFinalRoundWin: boolean;
+  canUndo: boolean;
+  onNextRound: () => void;
+  onFinishGame: () => void;
+  onUndo: () => void;
+}
 
 export default function RoundOutcome({
   roundWinnerName,
@@ -9,7 +20,7 @@ export default function RoundOutcome({
   onNextRound,
   onFinishGame,
   onUndo,
-}) {
+}: RoundOutcomeProps) {
   const { t } = useTranslation();
 
   return (

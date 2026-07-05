@@ -31,14 +31,46 @@
             "startingScore": "Startwert",
             "addPlayer": "Spieler hinzufügen",
             "playerPlaceholder": "Spieler {n}",
-            "startGame": "Spiel starten"
+            "startGame": "Spiel starten",
+            "bestOfLegs": "Best of Legs",
+            "bestOfSets": "Best of Sets",
+            "doubleIn": "Double In",
+            "doubleOut": "Double Out"
         },
         "game": {
             "enterScore": "Punkte eingeben",
             "submit": "OK",
             "bust": "Überworfen!",
-            "undo": "Letzten Wurf zurücksetzen",
-            "reset": "Spiel zurücksetzen"
+            "undo": "Zurück",
+            "reset": "Spiel zurücksetzen",
+            "set": "Satz {n}",
+            "leg": "Leg {n}",
+            "legWin": "{name} gewinnt das Leg!",
+            "setWin": "{name} gewinnt den Satz!",
+            "nextLeg": "Nächstes Leg",
+            "nextSet": "Nächster Satz",
+            "doubleInRequired": "Erst mit einem Double einsteigen",
+            "doubledIn": "Double getroffen",
+            "finishDartTitle": "Mit welchem Dart ausgecheckt?",
+            "finishDartDescription": "Wähle den Dart, mit dem du in diesem Besuch ausgecheckt hast.",
+            "dart1": "1. Dart",
+            "dart2": "2. Dart",
+            "dart3": "3. Dart",
+            "rest": "Rest",
+            "noScore": "Kein Score",
+            "clear": "CLR"
+        },
+        "leave": {
+            "title": "Spiel verlassen?",
+            "description": "Möchtest du das Spiel beenden oder deinen Fortschritt speichern?",
+            "stop": "Spiel beenden",
+            "save": "Speichern & beenden"
+        },
+        "resume": {
+            "title": "Spiel fortsetzen?",
+            "description": "Du hast ein laufendes Spiel gespeichert.",
+            "continue": "Fortsetzen",
+            "newGame": "Neues Spiel"
         },
         "win": {
             "title": "{name} gewinnt!",
@@ -52,7 +84,40 @@
         },
         "validation": {
             "duplicateNames": "Alle Spielernamen müssen eindeutig sein",
-            "emptyName": "Alle Spieler brauchen einen Namen"
+            "emptyName": "Alle Spieler brauchen einen Namen",
+            "invalidLegs": "Best of Legs muss mindestens 1 sein",
+            "invalidSets": "Best of Sets muss mindestens 1 sein"
+        },
+        "stats": {
+            "title": "Match-Statistiken",
+            "game": "Gesamt",
+            "set": "Satz {n}",
+            "leg": "Leg {n}",
+            "summary": "Übersicht",
+            "legs": "Legs",
+            "darts": "Darts",
+            "avg3dart": "3-Dart-Durchschnitt",
+            "avgOverall": "Gesamt",
+            "avgFirst9": "Erste 9",
+            "avgFirst12": "Erste 12",
+            "avgFirst15": "Erste 15",
+            "avgUntil100": "Bis 100",
+            "avgUntil170": "Bis 170",
+            "checkout": "Checkout",
+            "coAvg": "Ø Checkout",
+            "highestCO": "Höchster",
+            "doubles": "Doubles",
+            "doublePercent": "Double %",
+            "best": "Bestleistung",
+            "bestLeg": "Bestes Leg (Darts)",
+            "bestLegAvg": "Bestes Leg (Ø)",
+            "highscore": "Highscore",
+            "visits": "Visits",
+            "noScore": "Kein Score / Überworfen"
+        },
+        "history": {
+            "title": "Verlauf von {name}",
+            "empty": "Noch keine Würfe"
         }
     },
     "validation": {

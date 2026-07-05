@@ -1,4 +1,4 @@
-function getThreeDartCheckoutScores() {
+function getThreeDartCheckoutScores(): number[] {
   const singles = Array.from({ length: 20 }, (_, i) => i + 1);
   const doubles = Array.from({ length: 20 }, (_, i) => (i + 1) * 2);
   const trebles = Array.from({ length: 20 }, (_, i) => (i + 1) * 3);
@@ -8,7 +8,7 @@ function getThreeDartCheckoutScores() {
   ];
   const finishingDarts = [...doubles, 50];
 
-  const checkoutScores = new Set();
+  const checkoutScores = new Set<number>();
 
   for (const first of allDartScores) {
     for (const second of allDartScores) {
@@ -24,9 +24,9 @@ function getThreeDartCheckoutScores() {
   return [...checkoutScores].sort((a, b) => a - b);
 }
 
-export const THREE_DART_CHECKOUTS = getThreeDartCheckoutScores();
+export const THREE_DART_CHECKOUTS: number[] = getThreeDartCheckoutScores();
 
-export function randomUniqueCheckoutNumbers(min, max, count = 9) {
+export function randomUniqueCheckoutNumbers(min: number, max: number, count = 9): number[] {
   const pool = THREE_DART_CHECKOUTS.filter(
     (score) => score >= min && score <= max,
   );

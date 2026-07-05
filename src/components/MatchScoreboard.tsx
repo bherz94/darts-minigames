@@ -1,6 +1,11 @@
-import { useTranslation } from "../hooks/useTranslation.jsx";
+import { useTranslation } from "../hooks/useTranslation";
+import { type Game } from "../utils/gameLogic";
 
-export default function MatchScoreboard({ game }) {
+interface MatchScoreboardProps {
+  game: Game;
+}
+
+export default function MatchScoreboard({ game }: MatchScoreboardProps) {
   const { t } = useTranslation();
 
   return (

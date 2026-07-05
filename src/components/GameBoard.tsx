@@ -1,10 +1,20 @@
+import { type Claim } from "../utils/gameLogic";
+
+interface GameBoardProps {
+  boardNumbers: number[];
+  claims: Claim[];
+  winningLine: number[];
+  onTileClick: (index: number) => void;
+  disabled: boolean;
+}
+
 export default function GameBoard({
   boardNumbers,
   claims,
   winningLine,
   onTileClick,
   disabled,
-}) {
+}: GameBoardProps) {
   return (
     <div className="grid w-full max-w-[min(92vw,42rem)] grid-cols-3 gap-3 md:max-w-[min(78vw,34rem)] lg:max-w-[min(70vw,32rem)]">
       {boardNumbers.map((number, index) => {

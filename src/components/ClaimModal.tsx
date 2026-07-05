@@ -1,4 +1,14 @@
-import { useTranslation } from "../hooks/useTranslation.jsx";
+import { useTranslation } from "../hooks/useTranslation";
+import { type Claim, type PlayerSymbol } from "../utils/gameLogic";
+
+interface ClaimModalProps {
+  number: number;
+  currentClaim: Claim;
+  players: { X: string; O: string };
+  onClaim: (symbol: PlayerSymbol) => void;
+  onUnclaim: () => void;
+  onClose: () => void;
+}
 
 export default function ClaimModal({
   number,
@@ -7,7 +17,7 @@ export default function ClaimModal({
   onClaim,
   onUnclaim,
   onClose,
-}) {
+}: ClaimModalProps) {
   const { t } = useTranslation();
 
   return (

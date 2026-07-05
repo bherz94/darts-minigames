@@ -1,4 +1,14 @@
-import { useTranslation } from "../hooks/useTranslation.jsx";
+import { useTranslation } from "../hooks/useTranslation";
+
+interface ConfirmModalProps {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmClassName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  cancelLabel?: string;
+}
 
 export default function ConfirmModal({
   title,
@@ -8,7 +18,7 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   cancelLabel,
-}) {
+}: ConfirmModalProps) {
   const { t } = useTranslation();
 
   return (

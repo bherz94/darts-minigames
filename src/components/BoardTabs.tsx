@@ -1,4 +1,12 @@
-export default function BoardTabs({ players, activeBoard, onChange }) {
+import { type PlayerSymbol } from "../utils/gameLogic";
+
+interface BoardTabsProps {
+  players: { X: string; O: string };
+  activeBoard: PlayerSymbol;
+  onChange: (board: PlayerSymbol) => void;
+}
+
+export default function BoardTabs({ players, activeBoard, onChange }: BoardTabsProps) {
   return (
     <div className="mb-5 flex rounded-2xl border border-slate-700 bg-slate-900 p-1">
       <button

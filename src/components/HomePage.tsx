@@ -1,6 +1,6 @@
-import { useTranslation } from "../hooks/useTranslation.jsx";
+import { useTranslation } from "../hooks/useTranslation";
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage() {
   const { t } = useTranslation();
 
   return (
@@ -11,7 +11,7 @@ export default function HomePage({ onNavigate }) {
       </div>
       <div className="grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
         <button
-          onClick={() => onNavigate("tictactoe")}
+          onClick={() => { window.location.hash = "/tictactoe"; }}
           className="rounded-2xl border border-slate-700 bg-slate-900 p-6 text-left transition hover:border-slate-500 hover:bg-slate-800"
         >
           <h2 className="text-lg font-semibold text-white">
@@ -22,7 +22,7 @@ export default function HomePage({ onNavigate }) {
           </p>
         </button>
         <button
-          onClick={() => onNavigate("dartcounter")}
+          onClick={() => { window.location.hash = "/dartcounter"; }}
           className="rounded-2xl border border-slate-700 bg-slate-900 p-6 text-left transition hover:border-slate-500 hover:bg-slate-800"
         >
           <h2 className="text-lg font-semibold text-white">

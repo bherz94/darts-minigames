@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useTranslation } from "../hooks/useTranslation.jsx";
+import { useTranslation } from "../hooks/useTranslation";
 import {
   STORAGE_KEY,
   applyRoundWinToMatch,
@@ -12,19 +12,24 @@ import {
   resetSeparateRound,
   resetSharedRound,
   validateSetup,
-} from "../utils/gameLogic.js";
-import BoardTabs from "../components/BoardTabs.jsx";
-import ClaimModal from "../components/ClaimModal.jsx";
-import ConfirmModal from "../components/ConfirmModal.jsx";
-import GameBoard from "../components/GameBoard.jsx";
-import MatchScoreboard from "../components/MatchScoreboard.jsx";
-import RoundOutcome from "../components/RoundOutcome.jsx";
-import SetupModal from "../components/SetupModal.jsx";
+  type Game,
+  type PlayerSymbol,
+  type Setup,
+  type SeparateGame,
+  type SharedGame,
+} from "../utils/gameLogic";
+import BoardTabs from "../components/BoardTabs";
+import ClaimModal from "../components/ClaimModal";
+import ConfirmModal from "../components/ConfirmModal";
+import GameBoard from "../components/GameBoard";
+import MatchScoreboard from "../components/MatchScoreboard";
+import RoundOutcome from "../components/RoundOutcome";
+import SetupModal from "../components/SetupModal";
 
-export default function TicTacToePage({ onNavigate }) {
+export default function TicTacToePage() {
   const { t } = useTranslation();
 
-  const [setup, setSetup] = useState({
+  const [setup, setSetup] = useState<Setup>({
     separateBoards: false,
     bestOf: "3",
     min: "",
@@ -37,12 +42,12 @@ export default function TicTacToePage({ onNavigate }) {
     player2: "",
   });
 
-  const [game, setGame] = useState(() => {
+  const [game, setGame] = useState<Game | null>(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (!saved) return null;
 
-      const parsed = JSON.parse(saved);
+      const parsed: unknown = JSON.parse(saved);
       const hydrated = hydrateLoadedGame(parsed);
 
       if (!hydrated) {
@@ -61,9 +66,9 @@ export default function TicTacToePage({ onNavigate }) {
     }
   });
 
-  const [selectedTileIndex, setSelectedTileIndex] = useState(null);
-  const [activeBoard, setActiveBoard] = useState("X");
-  const [history, setHistory] = useState([]);
+  const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
+  const [activeBoard, setActiveBoard] = useState<PlayerSymbol>("X");
+  const [history, setHistory] = useState<Game[]>([]);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [changeSetupConfirmOpen, setChangeSetupConfirmOpen] = useState(false);
 
@@ -83,21 +88,21 @@ export default function TicTacToePage({ onNavigate }) {
 
   const setupModalOpen = !game;
   const isSeparateMode = game?.mode === "separate";
-  const currentBoard = isSeparateMode && game ? game.boards[activeBoard] : null;
+  const currentBoard = isSeparateMode && game ? (game as SeparateGame).boards[activeBoard] : null;
   const separateRoundState = isSeparateMode ? getSeparateRoundState(game) : null;
 
   const claimModalOpen =
     !isSeparateMode &&
     selectedTileIndex !== null &&
     !!game &&
-    !game.winner &&
-    !game.isDraw &&
+    !(game as SharedGame).winner &&
+    !(game as SharedGame).isDraw &&
     !game.matchWinner &&
     !game.matchFinished;
 
   const roundWinnerSymbol =
     game?.mode === "shared"
-      ? (game?.winner ?? null)
+      ? ((game as SharedGame).winner ?? null)
       : (separateRoundState?.winnerSymbol ?? null);
 
   const roundWinnerName =
@@ -106,7 +111,7 @@ export default function TicTacToePage({ onNavigate }) {
   const roundIsDraw =
     !!game &&
     (game.mode === "shared"
-      ? game.isDraw && !game.winner
+      ? (game as SharedGame).isDraw && !(game as SharedGame).winner
       : separateRoundState?.type === "draw");
 
   const anyOverlayOpen =
@@ -115,18 +120,19 @@ export default function TicTacToePage({ onNavigate }) {
   const selectedNumber =
     game && selectedTileIndex !== null
       ? game.mode === "shared"
-        ? game.boardNumbers[selectedTileIndex]
-        : game.boards[activeBoard].boardNumbers[selectedTileIndex]
+        ? (game as SharedGame).boardNumbers[selectedTileIndex]
+        : (game as SeparateGame).boards[activeBoard].boardNumbers[selectedTileIndex]
       : null;
 
   const selectedClaim =
     game && selectedTileIndex !== null
       ? game.mode === "shared"
-        ? game.claims[selectedTileIndex]
-        : game.boards[activeBoard].claims[selectedTileIndex]
+        ? (game as SharedGame).claims[selectedTileIndex]
+        : (game as SeparateGame).boards[activeBoard].claims[selectedTileIndex]
       : null;
 
   const matchWinnerName = game?.matchWinner ? game.players[game.matchWinner] : "";
+
   const canUndo = !!game && history.length > 0;
 
   const isFinalRoundWin =
@@ -144,21 +150,21 @@ export default function TicTacToePage({ onNavigate }) {
 
   const roundNumber = game?.roundNumber ?? 1;
 
-  const boardNumbers = isSeparateMode
+  const boardNumbers = isSeparateMode && currentBoard
     ? currentBoard.boardNumbers
-    : (game?.boardNumbers ?? []);
+    : (game?.mode === "shared" ? (game as SharedGame).boardNumbers : []);
 
-  const boardClaims = isSeparateMode
+  const boardClaims = isSeparateMode && currentBoard
     ? currentBoard.claims
-    : (game?.claims ?? []);
+    : (game?.mode === "shared" ? (game as SharedGame).claims : []);
 
-  const boardWinningLine = isSeparateMode
+  const boardWinningLine = isSeparateMode && currentBoard
     ? currentBoard.winningLine
-    : (game?.winningLine ?? []);
+    : (game?.mode === "shared" ? (game as SharedGame).winningLine : []);
 
   const boardDisabled = game
     ? game.mode === "shared"
-      ? !!game.winner || game.isDraw || !!game.matchWinner || !!game.matchFinished
+      ? !!(game as SharedGame).winner || (game as SharedGame).isDraw || !!game.matchWinner || !!game.matchFinished
       : separateRoundFinished ||
         !!currentBoard?.winner ||
         !!currentBoard?.isDraw ||
@@ -173,7 +179,7 @@ export default function TicTacToePage({ onNavigate }) {
     setHistory((prev) => [...prev, structuredClone(game)]);
   }
 
-  function handleSubmitSetup(e) {
+  function handleSubmitSetup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     handleStartGame();
   }
@@ -190,18 +196,18 @@ export default function TicTacToePage({ onNavigate }) {
     setChangeSetupConfirmOpen(false);
   }
 
-  function handleTileClick(index) {
+  function handleTileClick(index: number) {
     if (!game) return;
 
     if (game.mode === "shared") {
-      if (game.winner || game.isDraw || game.matchWinner || game.matchFinished) {
-        return;
-      }
+      const sg = game as SharedGame;
+      if (sg.winner || sg.isDraw || game.matchWinner || game.matchFinished) return;
       setSelectedTileIndex(index);
       return;
     }
 
-    const board = game.boards[activeBoard];
+    const sepGame = game as SeparateGame;
+    const board = sepGame.boards[activeBoard];
     if (
       separateRoundFinished ||
       board.winner ||
@@ -219,9 +225,9 @@ export default function TicTacToePage({ onNavigate }) {
 
     const nextBoard = recomputeSeparateBoardState({ ...board, claims: nextClaims });
 
-    let nextGame = {
-      ...game,
-      boards: { ...game.boards, [activeBoard]: nextBoard },
+    let nextGame: Game = {
+      ...sepGame,
+      boards: { ...sepGame.boards, [activeBoard]: nextBoard },
     };
 
     if (nextBoard.winner) {
@@ -231,16 +237,17 @@ export default function TicTacToePage({ onNavigate }) {
     setGame(nextGame);
   }
 
-  function handleClaimTile(symbol) {
+  function handleClaimTile(symbol: PlayerSymbol) {
     if (!game || game.mode !== "shared" || selectedTileIndex === null) return;
     if (game.matchWinner || game.matchFinished) return;
 
     saveHistorySnapshot();
 
-    const nextClaims = [...game.claims];
+    const sg = game as SharedGame;
+    const nextClaims = [...sg.claims];
     nextClaims[selectedTileIndex] = symbol;
 
-    const updatedRound = recomputeSharedGameState(game, nextClaims);
+    const updatedRound = recomputeSharedGameState(sg, nextClaims);
     const updatedGame = updatedRound.winner
       ? applyRoundWinToMatch(updatedRound, updatedRound.winner)
       : updatedRound;
@@ -255,10 +262,11 @@ export default function TicTacToePage({ onNavigate }) {
 
     saveHistorySnapshot();
 
-    const nextClaims = [...game.claims];
+    const sg = game as SharedGame;
+    const nextClaims = [...sg.claims];
     nextClaims[selectedTileIndex] = null;
 
-    setGame(recomputeSharedGameState(game, nextClaims));
+    setGame(recomputeSharedGameState(sg, nextClaims));
     setSelectedTileIndex(null);
   }
 
@@ -270,10 +278,10 @@ export default function TicTacToePage({ onNavigate }) {
     if (!game) return;
     setSelectedTileIndex(null);
     if (game.mode === "shared") {
-      setGame(resetSharedRound(game));
+      setGame(resetSharedRound(game as SharedGame));
       return;
     }
-    setGame(resetSeparateRound(game));
+    setGame(resetSeparateRound(game as SeparateGame));
   }
 
   function handleFinishGame() {
@@ -291,7 +299,7 @@ export default function TicTacToePage({ onNavigate }) {
 
     if (game.mode === "shared") {
       setGame({
-        ...resetSharedRound(game),
+        ...resetSharedRound(game as SharedGame),
         roundNumber: 1,
         matchWins: { X: 0, O: 0 },
         matchWinner: null,
@@ -301,7 +309,7 @@ export default function TicTacToePage({ onNavigate }) {
     }
 
     setGame({
-      ...resetSeparateRound(game),
+      ...resetSeparateRound(game as SeparateGame),
       roundNumber: 1,
       matchWins: { X: 0, O: 0 },
       matchWinner: null,
@@ -367,20 +375,10 @@ export default function TicTacToePage({ onNavigate }) {
     <>
       <div className={anyOverlayOpen ? "pointer-events-none select-none blur-sm" : ""}>
         <main className="mx-auto flex flex-col items-center max-w-7xl px-4 py-4 md:py-5">
-          <div className="mb-5 w-full">
-            <div className="mb-4 flex items-center">
-              <button
-                onClick={() => onNavigate("home")}
-                className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
-              >
-                ← {t("nav.back")}
-              </button>
-            </div>
-            <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight">
-                {t("app.title")}
-              </h1>
-            </div>
+          <div className="mb-5 w-full text-center">
+            <h1 className="text-4xl font-bold tracking-tight">
+              {t("app.title")}
+            </h1>
           </div>
 
           {game && (
@@ -398,8 +396,8 @@ export default function TicTacToePage({ onNavigate }) {
                   game.mode === "shared" &&
                   !showGameHint &&
                   !game.matchWinner &&
-                  !game.winner &&
-                  !game.isDraw && (
+                  !(game as SharedGame).winner &&
+                  !(game as SharedGame).isDraw && (
                     <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
                       {t("board.sharedHint")}
                     </div>
@@ -409,9 +407,9 @@ export default function TicTacToePage({ onNavigate }) {
                   game.mode === "separate" &&
                   !showGameHint &&
                   !game.matchWinner &&
-                  !game.boards.X.winner &&
-                  !game.boards.O.winner &&
-                  !(game.boards.X.isDraw && game.boards.O.isDraw) && (
+                  !(game as SeparateGame).boards.X.winner &&
+                  !(game as SeparateGame).boards.O.winner &&
+                  !((game as SeparateGame).boards.X.isDraw && (game as SeparateGame).boards.O.isDraw) && (
                     <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
                       {t("board.separateHint")}
                     </div>
@@ -433,8 +431,8 @@ export default function TicTacToePage({ onNavigate }) {
                 {game.mode === "shared" && (
                   <div className="text-sm text-slate-400">
                     {t("board.sharedRangeInfo", {
-                      min: game.min,
-                      max: game.max,
+                      min: (game as SharedGame).min,
+                      max: (game as SharedGame).max,
                       playerX: game.players.X,
                       playerO: game.players.O,
                     })}
@@ -445,11 +443,11 @@ export default function TicTacToePage({ onNavigate }) {
                   <div className="text-sm text-slate-400">
                     {t("board.separateRangeInfo", {
                       playerX: game.players.X,
-                      minX: game.boards.X.min,
-                      maxX: game.boards.X.max,
+                      minX: (game as SeparateGame).boards.X.min,
+                      maxX: (game as SeparateGame).boards.X.max,
                       playerO: game.players.O,
-                      minO: game.boards.O.min,
-                      maxO: game.boards.O.max,
+                      minO: (game as SeparateGame).boards.O.min,
+                      maxO: (game as SeparateGame).boards.O.max,
                     })}
                   </div>
                 )}
@@ -500,11 +498,11 @@ export default function TicTacToePage({ onNavigate }) {
         />
       )}
 
-      {claimModalOpen && (
+      {claimModalOpen && selectedNumber !== null && selectedClaim !== undefined && (
         <ClaimModal
           number={selectedNumber}
           currentClaim={selectedClaim}
-          players={game.players}
+          players={game!.players}
           onClaim={handleClaimTile}
           onUnclaim={handleUnclaimTile}
           onClose={handleCloseClaimModal}

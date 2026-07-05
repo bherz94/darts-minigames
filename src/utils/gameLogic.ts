@@ -1,6 +1,6 @@
-import { randomUniqueCheckoutNumbers } from "./checkouts.js";
+import { randomUniqueCheckoutNumbers } from "./checkouts";
 
-export const WIN_LINES = [
+export const WIN_LINES: [number, number, number][] = [
   [0, 1, 2],
   [3, 4, 5],
   [6, 7, 8],
@@ -14,11 +14,94 @@ export const WIN_LINES = [
 export const STORAGE_KEY = "darts-tictactoe-gamestate";
 export const LANGUAGE_STORAGE_KEY = "darts-tictactoe-language";
 
-export function getWinner(claims) {
+export type PlayerSymbol = "X" | "O";
+export type Claim = PlayerSymbol | null;
+
+export interface Board {
+  min: number;
+  max: number;
+  boardNumbers: number[];
+  claims: Claim[];
+  winner: PlayerSymbol | null;
+  winningLine: number[];
+  isDraw: boolean;
+  owner: PlayerSymbol;
+}
+
+export interface Setup {
+  separateBoards: boolean;
+  bestOf: string;
+  min: string;
+  max: string;
+  player1Min: string;
+  player1Max: string;
+  player2Min: string;
+  player2Max: string;
+  player1: string;
+  player2: string;
+}
+
+interface BaseGame {
+  setupValues: Setup;
+  bestOf: number;
+  winsNeeded: number | null;
+  matchWins: { X: number; O: number };
+  matchWinner: PlayerSymbol | null;
+  matchFinished: boolean;
+  players: { X: string; O: string };
+  roundNumber: number;
+}
+
+export interface SharedGame extends BaseGame {
+  mode: "shared";
+  min: number;
+  max: number;
+  boardNumbers: number[];
+  claims: Claim[];
+  winner: PlayerSymbol | null;
+  winningLine: number[];
+  isDraw: boolean;
+}
+
+export interface SeparateGame extends BaseGame {
+  mode: "separate";
+  boards: { X: Board; O: Board };
+}
+
+export type Game = SharedGame | SeparateGame;
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: {
+    min: string;
+    max: string;
+    player1Min: string;
+    player1Max: string;
+    player2Min: string;
+    player2Max: string;
+    bestOf: string;
+    players: string;
+  };
+}
+
+export interface SeparateRoundState {
+  finished: boolean;
+  type: "win" | "draw" | null;
+  winnerSymbol: PlayerSymbol | null;
+}
+
+type TFunction = (key: string, vars?: Record<string, string | number>) => string;
+
+interface WinnerResult {
+  symbol: PlayerSymbol;
+  line: number[];
+}
+
+export function getWinner(claims: Claim[]): WinnerResult | null {
   for (const [a, b, c] of WIN_LINES) {
     if (claims[a] && claims[a] === claims[b] && claims[a] === claims[c]) {
       return {
-        symbol: claims[a],
+        symbol: claims[a] as PlayerSymbol,
         line: [a, b, c],
       };
     }
@@ -26,7 +109,11 @@ export function getWinner(claims) {
   return null;
 }
 
-export function validateRange(min, max, t) {
+export function validateRange(
+  min: string,
+  max: string,
+  t: TFunction,
+): { valid: boolean; errors: { min: string; max: string } } {
   const minNum = Number(min);
   const maxNum = Number(max);
 
@@ -44,7 +131,10 @@ export function validateRange(min, max, t) {
   };
 }
 
-export function validateBestOf(bestOf, t) {
+export function validateBestOf(
+  bestOf: string,
+  t: TFunction,
+): { valid: boolean; error: string } {
   const value = Number(bestOf);
   const valid =
     Number.isInteger(value) && value >= 0 && (value === 0 || value % 2 === 1);
@@ -55,7 +145,7 @@ export function validateBestOf(bestOf, t) {
   };
 }
 
-export function validateSetup(setup, t) {
+export function validateSetup(setup: Setup, t: TFunction): ValidationResult {
   const validPlayers =
     setup.player1.trim().length > 0 &&
     setup.player2.trim().length > 0 &&
@@ -111,12 +201,11 @@ export function validateSetup(setup, t) {
   };
 }
 
-export function getWinsNeeded(bestOf) {
-  const value = Number(bestOf);
-  return value === 0 ? null : Math.ceil(value / 2);
+export function getWinsNeeded(bestOf: number): number | null {
+  return bestOf === 0 ? null : Math.ceil(bestOf / 2);
 }
 
-export function buildStoredSetup(setup) {
+export function buildStoredSetup(setup: Setup): Setup {
   return {
     separateBoards: !!setup.separateBoards,
     bestOf: String(setup.bestOf ?? "3"),
@@ -131,12 +220,12 @@ export function buildStoredSetup(setup) {
   };
 }
 
-export function createBoard(min, max, symbol) {
+export function createBoard(min: string | number, max: string | number, symbol: PlayerSymbol): Board {
   return {
     min: Number(min),
     max: Number(max),
     boardNumbers: randomUniqueCheckoutNumbers(Number(min), Number(max), 9),
-    claims: Array(9).fill(null),
+    claims: Array(9).fill(null) as Claim[],
     winner: null,
     winningLine: [],
     isDraw: false,
@@ -144,7 +233,7 @@ export function createBoard(min, max, symbol) {
   };
 }
 
-export function buildNewGame(setup) {
+export function buildNewGame(setup: Setup): Game {
   const player1 = setup.player1.trim();
   const player2 = setup.player2.trim();
   const bestOf = Number(setup.bestOf);
@@ -158,18 +247,11 @@ export function buildNewGame(setup) {
       matchWins: { X: 0, O: 0 },
       matchWinner: null,
       matchFinished: false,
-      players: {
-        X: player1,
-        O: player2,
-      },
+      players: { X: player1, O: player2 },
       min: Number(setup.min),
       max: Number(setup.max),
-      boardNumbers: randomUniqueCheckoutNumbers(
-        Number(setup.min),
-        Number(setup.max),
-        9,
-      ),
-      claims: Array(9).fill(null),
+      boardNumbers: randomUniqueCheckoutNumbers(Number(setup.min), Number(setup.max), 9),
+      claims: Array(9).fill(null) as Claim[],
       winner: null,
       winningLine: [],
       isDraw: false,
@@ -185,10 +267,7 @@ export function buildNewGame(setup) {
     matchWins: { X: 0, O: 0 },
     matchWinner: null,
     matchFinished: false,
-    players: {
-      X: player1,
-      O: player2,
-    },
+    players: { X: player1, O: player2 },
     boards: {
       X: createBoard(setup.player1Min, setup.player1Max, "X"),
       O: createBoard(setup.player2Min, setup.player2Max, "O"),
@@ -197,7 +276,7 @@ export function buildNewGame(setup) {
   };
 }
 
-export function recomputeSharedGameState(baseGame, nextClaims) {
+export function recomputeSharedGameState(baseGame: SharedGame, nextClaims: Claim[]): SharedGame {
   const winner = getWinner(nextClaims);
   const isDraw = !winner && nextClaims.every(Boolean);
 
@@ -210,7 +289,7 @@ export function recomputeSharedGameState(baseGame, nextClaims) {
   };
 }
 
-export function recomputeSeparateBoardState(board) {
+export function recomputeSeparateBoardState(board: Board): Board {
   const winner = getWinner(board.claims);
   const isDraw = !winner && board.claims.every(Boolean);
 
@@ -222,19 +301,19 @@ export function recomputeSeparateBoardState(board) {
   };
 }
 
-export function resetSharedRound(game) {
+export function resetSharedRound(game: SharedGame): SharedGame {
   return {
     ...game,
     roundNumber: (game.roundNumber ?? 1) + 1,
     boardNumbers: randomUniqueCheckoutNumbers(game.min, game.max, 9),
-    claims: Array(9).fill(null),
+    claims: Array(9).fill(null) as Claim[],
     winner: null,
     winningLine: [],
     isDraw: false,
   };
 }
 
-export function resetSeparateRound(game) {
+export function resetSeparateRound(game: SeparateGame): SeparateGame {
   return {
     ...game,
     roundNumber: (game.roundNumber ?? 1) + 1,
@@ -245,8 +324,8 @@ export function resetSeparateRound(game) {
   };
 }
 
-export function applyRoundWinToMatch(game, roundWinner) {
-  if (!roundWinner || game.matchWinner) {
+export function applyRoundWinToMatch(game: Game, roundWinner: PlayerSymbol): Game {
+  if (game.matchWinner) {
     return game;
   }
 
@@ -267,28 +346,28 @@ export function applyRoundWinToMatch(game, roundWinner) {
   };
 }
 
-function isPlainObject(value) {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isValidClaim(value) {
+function isValidClaim(value: unknown): value is Claim {
   return value === null || value === "X" || value === "O";
 }
 
-function normalizeClaims(claims) {
+function normalizeClaims(claims: unknown): Claim[] | null {
   if (!Array.isArray(claims) || claims.length !== 9) return null;
   if (!claims.every(isValidClaim)) return null;
   return claims;
 }
 
-function normalizeWinningLine(line) {
+function normalizeWinningLine(line: unknown): number[] {
   if (!Array.isArray(line)) return [];
   return line.filter(
     (value) => Number.isInteger(value) && value >= 0 && value <= 8,
   );
 }
 
-function sanitizeBoard(rawBoard, fallbackOwner) {
+function sanitizeBoard(rawBoard: unknown, fallbackOwner: PlayerSymbol): Board | null {
   if (!isPlainObject(rawBoard)) return null;
 
   const min = Number(rawBoard.min);
@@ -305,7 +384,7 @@ function sanitizeBoard(rawBoard, fallbackOwner) {
     Array.isArray(rawBoard.boardNumbers) &&
     rawBoard.boardNumbers.length === 9 &&
     rawBoard.boardNumbers.every((n) => Number.isInteger(n))
-      ? rawBoard.boardNumbers
+      ? (rawBoard.boardNumbers as number[])
       : randomUniqueCheckoutNumbers(min, max, 9);
 
   const recomputedBoard = recomputeSeparateBoardState({
@@ -325,84 +404,69 @@ function sanitizeBoard(rawBoard, fallbackOwner) {
   };
 }
 
-export function hydrateLoadedGame(savedGame) {
-  if (!isPlainObject(savedGame)) {
-    return null;
-  }
+export function hydrateLoadedGame(savedGame: unknown): Game | null {
+  if (!isPlainObject(savedGame)) return null;
 
   const mode = savedGame.mode;
-  if (mode !== "shared" && mode !== "separate") {
-    return null;
-  }
+  if (mode !== "shared" && mode !== "separate") return null;
 
-  const playerX = String(savedGame.players?.X ?? "").trim();
-  const playerO = String(savedGame.players?.O ?? "").trim();
+  const playersRaw = savedGame.players;
+  const playerX = isPlainObject(playersRaw) ? String(playersRaw.X ?? "").trim() : "";
+  const playerO = isPlainObject(playersRaw) ? String(playersRaw.O ?? "").trim() : "";
 
-  if (!playerX || !playerO || playerX === playerO) {
-    return null;
-  }
+  if (!playerX || !playerO || playerX === playerO) return null;
 
   const bestOf = Number(savedGame.bestOf ?? 3);
   const validBestOf =
     Number.isInteger(bestOf) &&
     bestOf >= 0 &&
     (bestOf === 0 || bestOf % 2 === 1);
+  if (!validBestOf) return null;
 
-  if (!validBestOf) {
-    return null;
-  }
+  const sv = isPlainObject(savedGame.setupValues) ? savedGame.setupValues : null;
+  const boardsRaw = isPlainObject(savedGame.boards) ? savedGame.boards : null;
+  const boardXRaw = isPlainObject(boardsRaw?.X) ? boardsRaw.X : null;
+  const boardORaw = isPlainObject(boardsRaw?.O) ? boardsRaw.O : null;
 
   const setupValues = buildStoredSetup({
-    separateBoards:
-      savedGame.setupValues?.separateBoards ?? mode === "separate",
-    bestOf: savedGame.setupValues?.bestOf ?? String(bestOf),
-    min:
-      savedGame.setupValues?.min ??
-      (mode === "shared" ? String(savedGame.min ?? "") : ""),
-    max:
-      savedGame.setupValues?.max ??
-      (mode === "shared" ? String(savedGame.max ?? "") : ""),
-    player1Min:
-      savedGame.setupValues?.player1Min ??
-      (mode === "separate" ? String(savedGame.boards?.X?.min ?? "") : ""),
-    player1Max:
-      savedGame.setupValues?.player1Max ??
-      (mode === "separate" ? String(savedGame.boards?.X?.max ?? "") : ""),
-    player2Min:
-      savedGame.setupValues?.player2Min ??
-      (mode === "separate" ? String(savedGame.boards?.O?.min ?? "") : ""),
-    player2Max:
-      savedGame.setupValues?.player2Max ??
-      (mode === "separate" ? String(savedGame.boards?.O?.max ?? "") : ""),
-    player1: savedGame.setupValues?.player1 ?? playerX,
-    player2: savedGame.setupValues?.player2 ?? playerO,
+    separateBoards: sv != null ? Boolean(sv.separateBoards) : mode === "separate",
+    bestOf: sv?.bestOf != null ? String(sv.bestOf) : String(bestOf),
+    min: sv?.min != null ? String(sv.min) : (mode === "shared" ? String(savedGame.min ?? "") : ""),
+    max: sv?.max != null ? String(sv.max) : (mode === "shared" ? String(savedGame.max ?? "") : ""),
+    player1Min: sv?.player1Min != null ? String(sv.player1Min) : (boardXRaw != null ? String(boardXRaw.min ?? "") : ""),
+    player1Max: sv?.player1Max != null ? String(sv.player1Max) : (boardXRaw != null ? String(boardXRaw.max ?? "") : ""),
+    player2Min: sv?.player2Min != null ? String(sv.player2Min) : (boardORaw != null ? String(boardORaw.min ?? "") : ""),
+    player2Max: sv?.player2Max != null ? String(sv.player2Max) : (boardORaw != null ? String(boardORaw.max ?? "") : ""),
+    player1: sv?.player1 != null ? String(sv.player1) : playerX,
+    player2: sv?.player2 != null ? String(sv.player2) : playerO,
   });
 
   const winsNeeded = getWinsNeeded(bestOf);
+  const matchWinsRaw = isPlainObject(savedGame.matchWins) ? savedGame.matchWins : null;
+  const mwX = matchWinsRaw?.X;
+  const mwO = matchWinsRaw?.O;
   const matchWins = {
-    X: Number.isInteger(savedGame.matchWins?.X) ? savedGame.matchWins.X : 0,
-    O: Number.isInteger(savedGame.matchWins?.O) ? savedGame.matchWins.O : 0,
+    X: typeof mwX === "number" && Number.isInteger(mwX) ? mwX : 0,
+    O: typeof mwO === "number" && Number.isInteger(mwO) ? mwO : 0,
   };
 
   const rawMatchWinner = savedGame.matchWinner;
-  const matchWinner =
+  const matchWinner: PlayerSymbol | null =
     rawMatchWinner === "X" || rawMatchWinner === "O" ? rawMatchWinner : null;
 
-  const baseGame = {
-    mode,
+  const savedRoundNumber = savedGame.roundNumber;
+  const baseGame: Omit<SharedGame, "mode" | "min" | "max" | "boardNumbers" | "claims" | "winner" | "winningLine" | "isDraw"> &
+                  Omit<SeparateGame, "mode" | "boards"> = {
     setupValues,
     bestOf,
     winsNeeded,
     matchWins,
     matchWinner,
     matchFinished: Boolean(savedGame.matchFinished),
-    players: {
-      X: playerX,
-      O: playerO,
-    },
+    players: { X: playerX, O: playerO },
     roundNumber:
-      Number.isInteger(savedGame.roundNumber) && savedGame.roundNumber >= 1
-        ? savedGame.roundNumber
+      typeof savedRoundNumber === "number" && Number.isInteger(savedRoundNumber) && savedRoundNumber >= 1
+        ? savedRoundNumber
         : matchWins.X + matchWins.O + 1,
   };
 
@@ -412,29 +476,27 @@ export function hydrateLoadedGame(savedGame) {
 
     const validMin = Number.isInteger(min) && min >= 2 && min <= 167;
     const validMax = Number.isInteger(max) && max > min && max <= 170;
-    if (!validMin || !validMax) {
-      return null;
-    }
+    if (!validMin || !validMax) return null;
 
     const claims = normalizeClaims(savedGame.claims);
-    if (!claims) {
-      return null;
-    }
+    if (!claims) return null;
 
+    const rawBoardNumbers = savedGame.boardNumbers;
     const boardNumbers =
-      Array.isArray(savedGame.boardNumbers) &&
-      savedGame.boardNumbers.length === 9 &&
-      savedGame.boardNumbers.every((n) => Number.isInteger(n))
-        ? savedGame.boardNumbers
+      Array.isArray(rawBoardNumbers) &&
+      rawBoardNumbers.length === 9 &&
+      rawBoardNumbers.every((n) => Number.isInteger(n))
+        ? (rawBoardNumbers as number[])
         : randomUniqueCheckoutNumbers(min, max, 9);
 
     const recomputedGame = recomputeSharedGameState(
       {
         ...baseGame,
+        mode: "shared",
         min,
         max,
         boardNumbers,
-        claims: Array(9).fill(null),
+        claims: Array(9).fill(null) as Claim[],
         winner: null,
         winningLine: [],
         isDraw: false,
@@ -448,33 +510,26 @@ export function hydrateLoadedGame(savedGame) {
     };
   }
 
-  const boardX = sanitizeBoard(savedGame.boards?.X, "X");
-  const boardO = sanitizeBoard(savedGame.boards?.O, "O");
+  const boardX = sanitizeBoard(savedGame.boards ? (savedGame.boards as Record<string, unknown>).X : null, "X");
+  const boardO = sanitizeBoard(savedGame.boards ? (savedGame.boards as Record<string, unknown>).O : null, "O");
 
-  if (!boardX || !boardO) {
-    return null;
-  }
+  if (!boardX || !boardO) return null;
 
   return {
     ...baseGame,
+    mode: "separate",
     boards: {
-      X: {
-        ...boardX,
-        winningLine: normalizeWinningLine(boardX.winningLine),
-      },
-      O: {
-        ...boardO,
-        winningLine: normalizeWinningLine(boardO.winningLine),
-      },
+      X: { ...boardX, winningLine: normalizeWinningLine(boardX.winningLine) },
+      O: { ...boardO, winningLine: normalizeWinningLine(boardO.winningLine) },
     },
   };
 }
 
-export function boardHasProgress(board) {
+export function boardHasProgress(board: Board): boolean {
   return board.claims.some(Boolean) || !!board.winner || board.isDraw;
 }
 
-export function isMatchOngoing(game) {
+export function isMatchOngoing(game: Game | null): boolean {
   if (!game) return false;
 
   const hasMatchScoreProgress = game.matchWins.X > 0 || game.matchWins.O > 0;
@@ -495,7 +550,7 @@ export function isMatchOngoing(game) {
   );
 }
 
-export function getSeparateRoundState(game) {
+export function getSeparateRoundState(game: Game | null): SeparateRoundState | null {
   if (!game || game.mode !== "separate") return null;
 
   if (game.boards.X.winner) {
@@ -513,7 +568,7 @@ export function getSeparateRoundState(game) {
   return { finished: false, type: null, winnerSymbol: null };
 }
 
-export function getPlayerBoardHeading(playerName, t) {
+export function getPlayerBoardHeading(playerName: string, t: TFunction): string {
   const name = playerName.trim();
   return name
     ? t("setup.playerBoardNamed", { name })

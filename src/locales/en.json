@@ -31,14 +31,46 @@
             "startingScore": "Starting score",
             "addPlayer": "Add player",
             "playerPlaceholder": "Player {n}",
-            "startGame": "Start game"
+            "startGame": "Start game",
+            "bestOfLegs": "Best of Legs",
+            "bestOfSets": "Best of Sets",
+            "doubleIn": "Double In",
+            "doubleOut": "Double Out"
         },
         "game": {
             "enterScore": "Enter score",
             "submit": "Submit",
             "bust": "Bust!",
-            "undo": "Undo last throw",
-            "reset": "Reset game"
+            "undo": "Undo",
+            "reset": "Reset game",
+            "set": "Set {n}",
+            "leg": "Leg {n}",
+            "legWin": "{name} wins the leg!",
+            "setWin": "{name} wins the set!",
+            "nextLeg": "Next Leg",
+            "nextSet": "Next Set",
+            "doubleInRequired": "Must hit a double to start scoring",
+            "doubledIn": "Doubled in",
+            "finishDartTitle": "Which dart did you finish on?",
+            "finishDartDescription": "Select the dart you checked out with this visit.",
+            "dart1": "1st dart",
+            "dart2": "2nd dart",
+            "dart3": "3rd dart",
+            "rest": "Rest",
+            "noScore": "No Score",
+            "clear": "CLR"
+        },
+        "leave": {
+            "title": "Leave game?",
+            "description": "Do you want to stop the game or save your progress to continue later?",
+            "stop": "Stop game",
+            "save": "Save & exit"
+        },
+        "resume": {
+            "title": "Continue game?",
+            "description": "You have a saved game in progress.",
+            "continue": "Continue",
+            "newGame": "New game"
         },
         "win": {
             "title": "{name} wins!",
@@ -52,7 +84,40 @@
         },
         "validation": {
             "duplicateNames": "All player names must be unique",
-            "emptyName": "All players need a name"
+            "emptyName": "All players need a name",
+            "invalidLegs": "Best of Legs must be at least 1",
+            "invalidSets": "Best of Sets must be at least 1"
+        },
+        "stats": {
+            "title": "Match Statistics",
+            "game": "Game",
+            "set": "Set {n}",
+            "leg": "Leg {n}",
+            "summary": "Summary",
+            "legs": "Legs",
+            "darts": "Darts",
+            "avg3dart": "3-Dart Average",
+            "avgOverall": "Overall",
+            "avgFirst9": "First 9",
+            "avgFirst12": "First 12",
+            "avgFirst15": "First 15",
+            "avgUntil100": "Until 100",
+            "avgUntil170": "Until 170",
+            "checkout": "Checkout",
+            "coAvg": "Avg checkout",
+            "highestCO": "Highest",
+            "doubles": "Doubles",
+            "doublePercent": "Double %",
+            "best": "Best",
+            "bestLeg": "Best leg (darts)",
+            "bestLegAvg": "Best leg (avg)",
+            "highscore": "Highscore",
+            "visits": "Visits",
+            "noScore": "No score / Bust"
+        },
+        "history": {
+            "title": "{name}'s history",
+            "empty": "No throws yet"
         }
     },
     "validation": {

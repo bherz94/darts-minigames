@@ -1,7 +1,14 @@
-import { useTranslation } from "../hooks/useTranslation.jsx";
-import { getPlayerBoardHeading } from "../utils/gameLogic.js";
+import { useTranslation } from "../hooks/useTranslation";
+import { getPlayerBoardHeading, type Setup, type ValidationResult } from "../utils/gameLogic";
 
-export default function SetupModal({ setup, onChange, onSubmit, validation }) {
+interface SetupModalProps {
+  setup: Setup;
+  onChange: React.Dispatch<React.SetStateAction<Setup>>;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  validation: ValidationResult;
+}
+
+export default function SetupModal({ setup, onChange, onSubmit, validation }: SetupModalProps) {
   const { t } = useTranslation();
 
   return (
