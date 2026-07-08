@@ -82,6 +82,10 @@
             "description": "This will clear all scores and return to the setup screen.",
             "confirm": "Yes, reset"
         },
+        "bull": {
+            "title": "Who won the bull?",
+            "description": "The player closest to the bull throws first."
+        },
         "validation": {
             "duplicateNames": "All player names must be unique",
             "emptyName": "All players need a name",

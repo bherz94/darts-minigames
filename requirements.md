@@ -563,3 +563,38 @@ Each tab (Game / per leg) shows all sections. Values are computed for the select
 - `counter.stats.highscore`: "Highscore"
 - `counter.stats.visits`: "Visits"
 - `counter.stats.noScore`: "No Score"
+
+---
+
+## Task 8 — Dart Counter: Bull-off to determine starting player
+
+### Goal
+Before the first throw of a match (and again after "Play again"), show a modal asking which player won the bull. The bull winner throws first in leg 1. Starting player rotates through all players in order for each subsequent leg.
+
+### Flow
+
+- After "Start game" or "Play again": show a "Who won the bull?" modal over the game screen before any input is accepted
+- Modal lists one button per player; tapping a player sets them as the first thrower
+- No dismiss / skip option — a player must be selected to proceed
+- The modal is also shown when resuming a saved game that was interrupted before the bull was decided
+
+### Leg rotation
+
+- Leg 1 starts with the bull winner (index `B`)
+- Leg 2 starts with player `(B + 1) % numPlayers`
+- Leg N starts with player `(B + N - 1) % numPlayers`
+- Rotation applies across sets as well (no reset per set)
+
+### State
+
+Add `legStartPlayerIndex: number | null` to `CounterGame`:
+- `null` = bull not yet decided → show modal
+- `number` = index of the player who started the current leg
+
+On leg transition (`handleNextLeg`): `legStartPlayerIndex = (legStartPlayerIndex + 1) % numPlayers`, and `currentPlayerIndex` is set to match.
+
+Old saved games without the field default to `currentPlayerIndex` (no bull popup on resume).
+
+### Localization additions
+- `counter.bull.title`: "Who won the bull?"
+- `counter.bull.description`: "The player closest to the bull throws first."

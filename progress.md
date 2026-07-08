@@ -2,6 +2,39 @@
 
 ---
 
+## Task 8 — Dart Counter: Bull-off to determine starting player ✅
+
+### What was done
+
+**Modified files:**
+- `src/utils/dartCounterTypes.ts` — added `legStartPlayerIndex: number | null` to `CounterGame`
+- `src/pages/DartCounterPage.tsx` — bull popup, `handleBullWinner`, rotation in `handleNextLeg`, hydration
+- `src/locales/en.json` + `src/locales/de.json` — added `counter.bull.title` and `counter.bull.description`
+
+**`legStartPlayerIndex` field:**
+- `null` = bull not yet decided; triggers the modal
+- `number` = index of the player who started the current leg
+- Initialised to `null` in `handleStartGame` and `handlePlayAgain`
+- Hydration of old saves defaults to `currentPlayerIndex` (no surprise popup on resume)
+
+**Bull popup:**
+- Rendered as a `z-50` modal when `bullPending` (`game && !game.winner && game.legStartPlayerIndex === null`)
+- Lists one button per player; tapping calls `handleBullWinner(idx)` which sets both `legStartPlayerIndex` and `currentPlayerIndex` to `idx`
+- `bullPending` is included in `anyModalOpen`, so the numpad is hidden and player cards are blurred while it is shown
+- No dismiss option — selection is required to proceed
+
+**Leg rotation in `handleNextLeg`:**
+- `nextStart = (game.legStartPlayerIndex ?? 0 + 1) % game.players.length`
+- Both `legStartPlayerIndex` and `currentPlayerIndex` are set to `nextStart`
+- Rotation is continuous across sets (no reset per set)
+
+### Key design decisions
+- `legStartPlayerIndex: null` is the canonical "bull pending" signal rather than a separate React state, so the state is persisted in localStorage and survives page reloads
+- Bull popup is gated on `!game.winner` so it never appears on the post-match stats screen
+- Old saves (field absent) fall back to `currentPlayerIndex` rather than `null` to avoid confusing returning users with an unexpected modal
+
+---
+
 ## Task 7 — Dart Counter: In-game statistics + post-game statistics screen ✅
 
 ### What was done

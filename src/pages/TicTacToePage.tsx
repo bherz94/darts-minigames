@@ -4,6 +4,7 @@ import {
   STORAGE_KEY,
   applyRoundWinToMatch,
   buildNewGame,
+  getPlayerBoardHeading,
   getSeparateRoundState,
   hydrateLoadedGame,
   isMatchOngoing,
@@ -24,7 +25,6 @@ import ConfirmModal from "../components/ConfirmModal";
 import GameBoard from "../components/GameBoard";
 import MatchScoreboard from "../components/MatchScoreboard";
 import RoundOutcome from "../components/RoundOutcome";
-import SetupModal from "../components/SetupModal";
 
 export default function TicTacToePage() {
   const { t } = useTranslation();
@@ -86,7 +86,6 @@ export default function TicTacToePage() {
 
   const validation = useMemo(() => validateSetup(setup, t), [setup, t]);
 
-  const setupModalOpen = !game;
   const isSeparateMode = game?.mode === "separate";
   const currentBoard = isSeparateMode && game ? (game as SeparateGame).boards[activeBoard] : null;
   const separateRoundState = isSeparateMode ? getSeparateRoundState(game) : null;
@@ -114,8 +113,7 @@ export default function TicTacToePage() {
       ? (game as SharedGame).isDraw && !(game as SharedGame).winner
       : separateRoundState?.type === "draw");
 
-  const anyOverlayOpen =
-    setupModalOpen || claimModalOpen || resetConfirmOpen || changeSetupConfirmOpen;
+  const anyOverlayOpen = claimModalOpen || resetConfirmOpen || changeSetupConfirmOpen;
 
   const selectedNumber =
     game && selectedTileIndex !== null
@@ -177,11 +175,6 @@ export default function TicTacToePage() {
   function saveHistorySnapshot() {
     if (!game) return;
     setHistory((prev) => [...prev, structuredClone(game)]);
-  }
-
-  function handleSubmitSetup(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    handleStartGame();
   }
 
   function handleStartGame() {
@@ -371,6 +364,207 @@ export default function TicTacToePage() {
     performOpenNewSetup();
   }
 
+  // Setup screen
+  if (!game) {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-4 md:py-5">
+        <div className="mb-5">
+          <h1 className="text-4xl font-bold tracking-tight">{t("setup.startNewGame")}</h1>
+          <p className="mt-2 text-sm text-slate-400">{t("setup.subtitle")}</p>
+        </div>
+
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleStartGame(); }}
+          className="rounded-2xl border border-slate-700 bg-slate-900 p-6"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm text-slate-300">{t("setup.player1")}</label>
+              <input
+                type="text"
+                value={setup.player1}
+                onChange={(e) => setSetup((prev) => ({ ...prev, player1: e.target.value }))}
+                enterKeyHint="next"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                placeholder={t("setup.player1Placeholder")}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-slate-300">{t("setup.player2")}</label>
+              <input
+                type="text"
+                value={setup.player2}
+                onChange={(e) => setSetup((prev) => ({ ...prev, player2: e.target.value }))}
+                enterKeyHint="next"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                placeholder={t("setup.player2Placeholder")}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="flex items-center gap-3 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={setup.separateBoards}
+                onChange={(e) => setSetup((prev) => ({ ...prev, separateBoards: e.target.checked }))}
+                className="h-4 w-4 rounded border-slate-600 bg-slate-950"
+              />
+              {t("setup.separateBoards")}
+            </label>
+          </div>
+
+          <div className="mt-6">
+            <label className="mb-1 block text-sm text-slate-300">{t("setup.bestOf")}</label>
+            <input
+              type="number"
+              min="0"
+              value={setup.bestOf}
+              onChange={(e) => setSetup((prev) => ({ ...prev, bestOf: e.target.value }))}
+              enterKeyHint="next"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+              placeholder={t("setup.bestOfPlaceholder")}
+            />
+            {validation.errors.bestOf ? (
+              <p className="mt-1 text-xs text-rose-400">{validation.errors.bestOf}</p>
+            ) : (
+              <p className="mt-1 text-xs text-slate-400">{t("setup.bestOfHint")}</p>
+            )}
+          </div>
+
+          {!setup.separateBoards && (
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">{t("setup.minValue")}</label>
+                <input
+                  type="number"
+                  value={setup.min}
+                  onChange={(e) => setSetup((prev) => ({ ...prev, min: e.target.value }))}
+                  enterKeyHint="next"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                  placeholder={t("setup.minPlaceholder")}
+                />
+                {validation.errors.min && (
+                  <p className="mt-1 text-xs text-rose-400">{validation.errors.min}</p>
+                )}
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">{t("setup.maxValue")}</label>
+                <input
+                  type="number"
+                  value={setup.max}
+                  onChange={(e) => setSetup((prev) => ({ ...prev, max: e.target.value }))}
+                  enterKeyHint="done"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                  placeholder={t("setup.maxPlaceholder")}
+                />
+                {validation.errors.max && (
+                  <p className="mt-1 text-xs text-rose-400">{validation.errors.max}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {setup.separateBoards && (
+            <div className="mt-6 grid grid-cols-1 gap-6">
+              <div className="rounded-2xl border border-cyan-500/20 p-4">
+                <h3 className="mb-4 text-lg font-semibold text-cyan-300">
+                  {getPlayerBoardHeading(setup.player1, t)}
+                </h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm text-slate-300">{t("setup.minValue")}</label>
+                    <input
+                      type="number"
+                      value={setup.player1Min}
+                      onChange={(e) => setSetup((prev) => ({ ...prev, player1Min: e.target.value }))}
+                      enterKeyHint="next"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                      placeholder={t("setup.minPlaceholder")}
+                    />
+                    {validation.errors.player1Min && (
+                      <p className="mt-1 text-xs text-rose-400">{validation.errors.player1Min}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm text-slate-300">{t("setup.maxValue")}</label>
+                    <input
+                      type="number"
+                      value={setup.player1Max}
+                      onChange={(e) => setSetup((prev) => ({ ...prev, player1Max: e.target.value }))}
+                      enterKeyHint="next"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                      placeholder={t("setup.maxPlaceholder")}
+                    />
+                    {validation.errors.player1Max && (
+                      <p className="mt-1 text-xs text-rose-400">{validation.errors.player1Max}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-pink-500/20 p-4">
+                <h3 className="mb-4 text-lg font-semibold text-pink-300">
+                  {getPlayerBoardHeading(setup.player2, t)}
+                </h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm text-slate-300">{t("setup.minValue")}</label>
+                    <input
+                      type="number"
+                      value={setup.player2Min}
+                      onChange={(e) => setSetup((prev) => ({ ...prev, player2Min: e.target.value }))}
+                      enterKeyHint="next"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                      placeholder={t("setup.minPlaceholder")}
+                    />
+                    {validation.errors.player2Min && (
+                      <p className="mt-1 text-xs text-rose-400">{validation.errors.player2Min}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm text-slate-300">{t("setup.maxValue")}</label>
+                    <input
+                      type="number"
+                      value={setup.player2Max}
+                      onChange={(e) => setSetup((prev) => ({ ...prev, player2Max: e.target.value }))}
+                      enterKeyHint="done"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-cyan-400"
+                      placeholder={t("setup.maxPlaceholder")}
+                    />
+                    {validation.errors.player2Max && (
+                      <p className="mt-1 text-xs text-rose-400">{validation.errors.player2Max}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {validation.errors.players && (
+            <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+              {validation.errors.players}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!validation.valid}
+            className={[
+              "mt-6 w-full rounded-xl px-4 py-3 font-semibold transition",
+              validation.valid
+                ? "bg-cyan-400 text-slate-950 hover:opacity-90"
+                : "cursor-not-allowed bg-slate-700 text-slate-400",
+            ].join(" ")}
+          >
+            {t("actions.startGame")}
+          </button>
+        </form>
+      </main>
+    );
+  }
+
+  // Game screen
   return (
     <>
       <div className={anyOverlayOpen ? "pointer-events-none select-none blur-sm" : ""}>
@@ -381,128 +575,115 @@ export default function TicTacToePage() {
             </h1>
           </div>
 
-          {game && (
-            <>
-              <MatchScoreboard game={game} />
+          <MatchScoreboard game={game} />
 
-              <div className="mb-5 flex flex-col items-center gap-3 text-center">
-                {game.matchWinner && game.matchFinished && (
-                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xl font-semibold text-emerald-300">
-                    {t("match.playerWinsMatch", { name: matchWinnerName })}
-                  </div>
-                )}
-
-                {!showRoundOutcomePanel &&
-                  game.mode === "shared" &&
-                  !showGameHint &&
-                  !game.matchWinner &&
-                  !(game as SharedGame).winner &&
-                  !(game as SharedGame).isDraw && (
-                    <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
-                      {t("board.sharedHint")}
-                    </div>
-                  )}
-
-                {!showRoundOutcomePanel &&
-                  game.mode === "separate" &&
-                  !showGameHint &&
-                  !game.matchWinner &&
-                  !(game as SeparateGame).boards.X.winner &&
-                  !(game as SeparateGame).boards.O.winner &&
-                  !((game as SeparateGame).boards.X.isDraw && (game as SeparateGame).boards.O.isDraw) && (
-                    <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
-                      {t("board.separateHint")}
-                    </div>
-                  )}
-
-                {showRoundOutcomePanel && (
-                  <RoundOutcome
-                    roundWinnerName={roundWinnerName}
-                    roundIsDraw={roundIsDraw}
-                    roundNumber={roundNumber}
-                    isFinalRoundWin={isFinalRoundWin}
-                    canUndo={canUndo}
-                    onNextRound={handleNextRound}
-                    onFinishGame={handleFinishGame}
-                    onUndo={handleUndoLastAction}
-                  />
-                )}
-
-                {game.mode === "shared" && (
-                  <div className="text-sm text-slate-400">
-                    {t("board.sharedRangeInfo", {
-                      min: (game as SharedGame).min,
-                      max: (game as SharedGame).max,
-                      playerX: game.players.X,
-                      playerO: game.players.O,
-                    })}
-                  </div>
-                )}
-
-                {game.mode === "separate" && (
-                  <div className="text-sm text-slate-400">
-                    {t("board.separateRangeInfo", {
-                      playerX: game.players.X,
-                      minX: (game as SeparateGame).boards.X.min,
-                      maxX: (game as SeparateGame).boards.X.max,
-                      playerO: game.players.O,
-                      minO: (game as SeparateGame).boards.O.min,
-                      maxO: (game as SeparateGame).boards.O.max,
-                    })}
-                  </div>
-                )}
+          <div className="mb-5 flex flex-col items-center gap-3 text-center">
+            {game.matchWinner && game.matchFinished && (
+              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xl font-semibold text-emerald-300">
+                {t("match.playerWinsMatch", { name: matchWinnerName })}
               </div>
+            )}
 
-              {isSeparateMode && (
-                <BoardTabs
-                  players={game.players}
-                  activeBoard={activeBoard}
-                  onChange={setActiveBoard}
-                />
+            {!showRoundOutcomePanel &&
+              game.mode === "shared" &&
+              !showGameHint &&
+              !game.matchWinner &&
+              !(game as SharedGame).winner &&
+              !(game as SharedGame).isDraw && (
+                <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
+                  {t("board.sharedHint")}
+                </div>
               )}
 
-              <GameBoard
-                boardNumbers={boardNumbers}
-                claims={boardClaims}
-                winningLine={boardWinningLine}
-                onTileClick={handleTileClick}
-                disabled={boardDisabled}
+            {!showRoundOutcomePanel &&
+              game.mode === "separate" &&
+              !showGameHint &&
+              !game.matchWinner &&
+              !(game as SeparateGame).boards.X.winner &&
+              !(game as SeparateGame).boards.O.winner &&
+              !((game as SeparateGame).boards.X.isDraw && (game as SeparateGame).boards.O.isDraw) && (
+                <div className="rounded-full border border-slate-700 bg-slate-900 px-5 py-2 text-lg text-slate-200">
+                  {t("board.separateHint")}
+                </div>
+              )}
+
+            {showRoundOutcomePanel && (
+              <RoundOutcome
+                roundWinnerName={roundWinnerName}
+                roundIsDraw={roundIsDraw}
+                roundNumber={roundNumber}
+                isFinalRoundWin={isFinalRoundWin}
+                canUndo={canUndo}
+                onNextRound={handleNextRound}
+                onFinishGame={handleFinishGame}
+                onUndo={handleUndoLastAction}
               />
+            )}
 
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <button
-                  onClick={handleResetMatch}
-                  className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 font-medium text-amber-200 transition hover:bg-amber-500/20"
-                >
-                  {t("actions.resetMatch")}
-                </button>
-
-                <button
-                  onClick={handleNewSetup}
-                  className="rounded-xl border border-slate-600 px-4 py-2 font-medium text-white transition hover:bg-slate-800"
-                >
-                  {t("actions.changePlayersRange")}
-                </button>
+            {game.mode === "shared" && (
+              <div className="text-sm text-slate-400">
+                {t("board.sharedRangeInfo", {
+                  min: (game as SharedGame).min,
+                  max: (game as SharedGame).max,
+                  playerX: game.players.X,
+                  playerO: game.players.O,
+                })}
               </div>
-            </>
+            )}
+
+            {game.mode === "separate" && (
+              <div className="text-sm text-slate-400">
+                {t("board.separateRangeInfo", {
+                  playerX: game.players.X,
+                  minX: (game as SeparateGame).boards.X.min,
+                  maxX: (game as SeparateGame).boards.X.max,
+                  playerO: game.players.O,
+                  minO: (game as SeparateGame).boards.O.min,
+                  maxO: (game as SeparateGame).boards.O.max,
+                })}
+              </div>
+            )}
+          </div>
+
+          {isSeparateMode && (
+            <BoardTabs
+              players={game.players}
+              activeBoard={activeBoard}
+              onChange={setActiveBoard}
+            />
           )}
+
+          <GameBoard
+            boardNumbers={boardNumbers}
+            claims={boardClaims}
+            winningLine={boardWinningLine}
+            onTileClick={handleTileClick}
+            disabled={boardDisabled}
+          />
+
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={handleResetMatch}
+              className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 font-medium text-amber-200 transition hover:bg-amber-500/20"
+            >
+              {t("actions.resetMatch")}
+            </button>
+
+            <button
+              onClick={handleNewSetup}
+              className="rounded-xl border border-slate-600 px-4 py-2 font-medium text-white transition hover:bg-slate-800"
+            >
+              {t("actions.changePlayersRange")}
+            </button>
+          </div>
         </main>
       </div>
-
-      {setupModalOpen && (
-        <SetupModal
-          setup={setup}
-          onChange={setSetup}
-          onSubmit={handleSubmitSetup}
-          validation={validation}
-        />
-      )}
 
       {claimModalOpen && selectedNumber !== null && selectedClaim !== undefined && (
         <ClaimModal
           number={selectedNumber}
           currentClaim={selectedClaim}
-          players={game!.players}
+          players={game.players}
           onClaim={handleClaimTile}
           onUnclaim={handleUnclaimTile}
           onClose={handleCloseClaimModal}

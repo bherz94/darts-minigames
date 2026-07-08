@@ -38,6 +38,7 @@ export interface CounterGame {
   matchFormat: MatchFormat;
   players: CounterPlayer[];
   currentPlayerIndex: number;
+  legStartPlayerIndex: number | null; // null = bull not yet decided
   currentSet: number;
   currentLeg: number;
   legWinner: string | null;

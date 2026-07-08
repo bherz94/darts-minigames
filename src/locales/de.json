@@ -82,6 +82,10 @@
             "description": "Damit werden alle Punkte gelöscht und du kommst zurück zur Einrichtung.",
             "confirm": "Ja, zurücksetzen"
         },
+        "bull": {
+            "title": "Wer hat den Bull gewonnen?",
+            "description": "Der Spieler, der am nächsten am Bull liegt, wirft zuerst."
+        },
         "validation": {
             "duplicateNames": "Alle Spielernamen müssen eindeutig sein",
             "emptyName": "Alle Spieler brauchen einen Namen",

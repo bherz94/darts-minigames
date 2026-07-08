@@ -108,6 +108,12 @@ function hydrateGame(raw: unknown): CounterGame | null {
       };
     }),
     currentPlayerIndex,
+    legStartPlayerIndex:
+      raw.legStartPlayerIndex === null
+        ? null
+        : typeof raw.legStartPlayerIndex === "number"
+          ? raw.legStartPlayerIndex
+          : currentPlayerIndex,
     currentSet,
     currentLeg,
     legWinner: typeof raw.legWinner === "string" ? raw.legWinner : null,
@@ -238,7 +244,8 @@ export default function DartCounterPage() {
   }, [game]);
 
   const gameInProgress = !!(game && !game.winner);
-  const anyModalOpen = !!(doubleOutConfirm || (game && game.legWinner) || leaveModalOpen || historyPopupPlayer !== null);
+  const bullPending = !!(game && !game.winner && game.legStartPlayerIndex === null);
+  const anyModalOpen = !!(bullPending || doubleOutConfirm || (game && game.legWinner) || leaveModalOpen || historyPopupPlayer !== null);
 
   useEffect(() => {
     if (gameInProgress) {
@@ -297,6 +304,7 @@ export default function DartCounterPage() {
         completedLegs: [],
       })),
       currentPlayerIndex: 0,
+      legStartPlayerIndex: null,
       currentSet: 1,
       currentLeg: 1,
       legWinner: null,
@@ -307,6 +315,11 @@ export default function DartCounterPage() {
     });
     setNumpadInput("");
     setDoubleInHit(false);
+  }
+
+  function handleBullWinner(idx: number) {
+    if (!game) return;
+    setGame({ ...game, legStartPlayerIndex: idx, currentPlayerIndex: idx });
   }
 
   function commitThrow(
@@ -416,7 +429,8 @@ export default function DartCounterPage() {
           completedLegs: [...p.completedLegs, legEntry],
         };
       }),
-      currentPlayerIndex: 0,
+      currentPlayerIndex: ((game.legStartPlayerIndex ?? 0) + 1) % game.players.length,
+      legStartPlayerIndex: ((game.legStartPlayerIndex ?? 0) + 1) % game.players.length,
       currentLeg: game.legWinnerWonSet ? 1 : game.currentLeg + 1,
       currentSet: game.legWinnerWonSet ? game.currentSet + 1 : game.currentSet,
       legWinner: null,
@@ -467,6 +481,7 @@ export default function DartCounterPage() {
         completedLegs: [],
       })),
       currentPlayerIndex: 0,
+      legStartPlayerIndex: null,
       currentSet: 1,
       currentLeg: 1,
       legWinner: null,
@@ -964,6 +979,27 @@ export default function DartCounterPage() {
               >
                 {numpadInput === "" ? t("counter.game.noScore") : t("counter.game.submit")}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bull-off popup */}
+      {bullPending && game && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <h2 className="text-xl font-bold">{t("counter.bull.title")}</h2>
+            <p className="mt-1 text-sm text-slate-400">{t("counter.bull.description")}</p>
+            <div className="mt-5 grid gap-3">
+              {game.players.map((p, i) => (
+                <button
+                  key={p.name}
+                  onClick={() => handleBullWinner(i)}
+                  className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-left font-medium text-white transition hover:border-cyan-500/60 hover:bg-cyan-500/10 hover:text-cyan-300"
+                >
+                  {p.name}
+                </button>
+              ))}
             </div>
           </div>
         </div>
